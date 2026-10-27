@@ -33,28 +33,34 @@ src/
     _layout.tsx             ThemeProvider + AuthProvider + AppStack
     index.tsx               redirect by session status and role
     sign-in.tsx
-    admin/{_layout,index}.tsx     RoleGate role="ADMIN"
-    teacher/{_layout,index}.tsx   RoleGate role="TEACHER"
-    student/{_layout,index}.tsx   RoleGate role="STUDENT"
+    admin/{_layout,index}.tsx     RoleGate + AppShell role="ADMIN"
+    teacher/{_layout,index}.tsx   RoleGate + AppShell role="TEACHER"
+    student/{_layout,index}.tsx   RoleGate + AppShell role="STUDENT"
     +not-found.tsx
   features/
     auth/                   api.ts, auth-context.tsx, role-gate.tsx, sign-in-screen.tsx, routes.ts, types.ts
-    dashboard/              role landing screens and per-role copy
+    dashboard/              api.ts, types.ts (the /api/dashboard/ payload), copy.ts,
+                            screens/{admin,teacher,student}-dashboard-screen.tsx,
+                            components/{dashboard-frame,list-panel}.tsx
+    shell/                  nav.ts (one item list per role), components/{app-shell,app-header}.tsx
   shared/
-    api/                    client.ts (Bearer, refresh, error mapping), types.ts (ApiError)
+    api/                    client.ts (Bearer, refresh, error mapping), types.ts (ApiError),
+                            use-resource.ts (useResource/useSubmit, Page)
     config/env.ts           API_URL
     storage/token-storage.ts  SecureStore, localStorage on web
-    theme/                  layout.ts (breakpoints), palette.ts (light/dark tokens), hydration.ts,
-                            theme-context.tsx (ThemeProvider/useTheme), document-style(.web).ts
-    ui/                     Screen, Button, Field, ErrorBanner, Badge, SessionLoader,
-                            AppStack, ThemeToggle
+    theme/                  layout.ts (breakpoints), palette.ts (light/dark tokens + tones),
+                            hydration.ts, theme-context.tsx (ThemeProvider/useTheme), document-style(.web).ts
+    ui/                     Screen, Button, Field, ErrorBanner, Badge, SessionLoader, Sheet,
+                            AppStack, ThemeToggle, Icon, StatTile, DonutChart, BarChart
 ```
 
 A feature owns its API calls, hooks, screens and types. Routes import through the feature's `index.ts` only. `shared/` never imports from `features/`.
 
 ## Theming and responsive layout
 
-`ThemeProvider` in `src/app/_layout.tsx` wraps the whole tree. Every colour comes from `useTheme().colors`, so no component hardcodes a hex value — `src/shared/theme/palette.ts` is the only file that holds colours.
+`ThemeProvider` in `src/app/_layout.tsx` wraps the whole tree. Every colour comes from `useTheme().colors`, so no component hardcodes a hex value — `src/shared/theme/palette.ts` is the only file that holds colours. Both schemes are derived from the university crest: shield blues for `brand`/`primary`, the banner yellow for `accent` (active tab marker, avatar), wreath green and ink for the `success`/`neutral` chart series.
+
+Semantic `tones` (`primary`, `accent`, `success`, `warning`, `danger`, `neutral`) drive stat tiles, badges and chart series. The API sends a tone name, never a colour, and `toneSet()` falls back to `neutral` for anything it does not recognise.
 
 - **Scheme** follows the device or browser setting by default. The `System / Light / Dark` control in `ThemeToggle` overrides it, and the choice persists under `assessmatrix.theme-preference` (AsyncStorage, `localStorage` on web).
 - **Web only**: `document-style.web.ts` paints `document.documentElement` with the active background and sets `color-scheme`, so overscroll, narrow-window letterboxing and native form controls match the theme instead of showing white.
@@ -71,6 +77,16 @@ Sizing comes from `useResponsive()`, which maps the window width in `src/shared/
 `Screen` applies the gutter, column gap and max width; `Button` and `Field` raise their touch target to 52dp off phones; sign-in and the role homes wrap their fields in a surface card once the viewport is not compact. Font sizes go through `scale()` so they grow with the breakpoint while still honouring the platform's accessibility font scaling. `app.json` sets `orientation: "default"` and `ios.supportsTablet` so landscape and tablet layouts are actually reachable.
 
 **Server rendering.** `web.output: "server"` in `app.json` means the first HTML is rendered where neither `localStorage` nor a viewport exists, so it always comes out light and compact. `useHydrated()` in `src/shared/theme/hydration.ts` holds the client to that same output for its first pass and applies the stored theme and real breakpoint in the commit right after — without it React logs a hydration mismatch on every themed screen. The cost is one frame of light/compact markup on web; native starts already hydrated.
+
+## Navigation shell
+
+`AppShell` in `src/features/shell/components/app-shell.tsx` wraps every role group and renders the same `NAV_BY_ROLE` list three ways: a 236dp sidebar with the crest and the signed-in account on `wide`, a 76dp icon rail on `medium`, and a bottom tab bar on `compact`. The tab bar shows four sections plus **Account**; a role with more sections swaps the fourth for a **More** sheet, so sign-out is reachable at every width. Selection is a pathname prefix match, so a detail screen keeps its section highlighted.
+
+`AppHeader` stays inside the screen column — it carries the page title, the screen's own actions and the theme toggle, and no longer repeats the navigation.
+
+## Dashboards
+
+Each role home reads one endpoint, `GET /api/dashboard/`, which returns `stats[]`, a `donut`, `bars` and role-specific lists (`recent_modules` / `recent_enrollments` for admin, `upcoming_assessments` / `recent_marks` for teacher and student). `DashboardFrame` renders the shared part — tiles, donut and bars — so the three screens differ only in the lists underneath. Charts are `react-native-svg` (donut) and plain views (bars), so the same components run in the APK and in the browser.
 
 ## Authentication
 
@@ -90,8 +106,8 @@ Error bodies are parsed both ways: SimpleJWT returns `{"detail": ...}` on the to
 
 ## Current state
 
-Implemented: sign-in, session restore, refresh, logout and role routing, plus role landing screens that call `GET /api/me/` to prove the session — all of it themed for light and dark and laid out for phones, tablets and desktop browsers.
+Implemented: sign-in, session restore, refresh, logout and role routing, the `AppShell` navigation, a dashboard per role from `/api/dashboard/`, plus every screen the API currently serves — milestone 1/2 (users, academic years, semesters, modules, enrollments with single and bulk add) and milestone 3/4 (lecture plans with distributions and assessments, publish/revert, the assessment state buttons, the marking roster and mark correction). All of it is themed for light and dark and laid out for phones, tablets and desktop browsers.
 
-Not built yet: the milestone 1 and 2 screens (users admin, academics, semesters, modules, enrollments). The API already serves them at `/api/users/`, `/api/academics/`, `/api/semesters/`, `/api/modules/` and `/api/enrollments/`.
+Verification uses `npm run web` against the API on `:8000`. Every route is screenshotted in headless Chrome at 390×1500, 820×1500 and 1440×1400 in both themes — 19 routes × 3 widths × 2 themes — and each run asserts the breakpoint the app itself resolved, that nothing overflows the viewport, and that the console stayed clean. `LayoutPreviewBar` (dev builds only) forces a breakpoint on one screen when you need to compare them side by side.
 
 `npm run web` signs in for real: the API sends CORS headers for the browser origins listed in `CORS_ALLOWED_ORIGINS` (see `docs/api-conventions.md` in the API repo), which defaults to the Expo web dev ports `8081`, `19000` and `19006`. Two things to keep aligned — the origin the browser reports must be in that list, and `EXPO_PUBLIC_API_URL` must be reachable *from the browser*, so `http://localhost:8000` works only when the API also binds the host you use. If the preflight answers without `client-type` in `Access-Control-Allow-Headers`, the browser blocks the request and the form reports `TypeError: NetworkError`.

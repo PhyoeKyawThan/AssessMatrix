@@ -1,5 +1,6 @@
-import { useEffect, useState } from 'react';
-import { Platform } from 'react-native';
+import { useSyncExternalStore } from 'react';
+
+const neverChanges = () => () => {};
 
 /**
  * Server rendering cannot see the stored theme or a real viewport, so it always emits the light
@@ -8,11 +9,5 @@ import { Platform } from 'react-native';
  * Native has no server pass, so it starts ready.
  */
 export function useHydrated(): boolean {
-  const [hydrated, setHydrated] = useState(Platform.OS !== 'web');
-
-  useEffect(() => {
-    setHydrated(true);
-  }, []);
-
-  return hydrated;
+  return useSyncExternalStore(neverChanges, () => true, () => false);
 }

@@ -1,5 +1,5 @@
-import { RoleHomeScreen } from '@/features/dashboard';
+import { StudentDashboardScreen } from '@/features/dashboard';
 
 export default function StudentHomeRoute() {
-  return <RoleHomeScreen role="STUDENT" />;
+  return <StudentDashboardScreen />;
 }

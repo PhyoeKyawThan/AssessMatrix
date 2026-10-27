@@ -1,5 +1,5 @@
-import { RoleHomeScreen } from '@/features/dashboard';
+import { AdminDashboardScreen } from '@/features/dashboard';
 
 export default function AdminHomeRoute() {
-  return <RoleHomeScreen role="ADMIN" />;
+  return <AdminDashboardScreen />;
 }
