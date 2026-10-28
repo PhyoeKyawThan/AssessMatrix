@@ -30,7 +30,7 @@ npm start
 ```
 src/
   app/                      routes only — each file renders a feature screen
-    _layout.tsx             ThemeProvider + AuthProvider + AppStack
+    _layout.tsx             ThemeProvider + AuthProvider + PushNotifications + AppStack
     index.tsx               redirect by session status and role
     sign-in.tsx
     admin/{_layout,index}.tsx     RoleGate + AppShell role="ADMIN"
@@ -43,6 +43,8 @@ src/
                             screens/{admin,teacher,student}-dashboard-screen.tsx,
                             components/{dashboard-frame,list-panel}.tsx
     shell/                  nav.ts (one item list per role), components/{app-shell,app-header}.tsx
+    notifications/          api.ts (POST/DELETE /api/me/push-token/),
+                            push-notifications.tsx (PushNotifications provider)
   shared/
     api/                    client.ts (Bearer, refresh, error mapping), types.ts (ApiError),
                             use-resource.ts (useResource/useSubmit, Page)
@@ -88,6 +90,16 @@ Sizing comes from `useResponsive()`, which maps the window width in `src/shared/
 
 Each role home reads one endpoint, `GET /api/dashboard/`, which returns `stats[]`, a `donut`, `bars` and role-specific lists (`recent_modules` / `recent_enrollments` for admin, `upcoming_assessments` / `recent_marks` for teacher and student). `DashboardFrame` renders the shared part — tiles, donut and bars — so the three screens differ only in the lists underneath. Charts are `react-native-svg` (donut) and plain views (bars), so the same components run in the APK and in the browser.
 
+## Push notifications
+
+`PushNotifications` in `src/features/notifications/push-notifications.tsx` wraps the navigator in `src/app/_layout.tsx`. While a session exists it asks for the notification permission, creates the `assessmatrix-updates` Android channel, gets the Expo push token for the EAS project in `app.json`, and stores it with `POST /api/me/push-token/`. A failed registration stays silent — the app works either way, it is just quiet.
+
+Unregistering is `signOut`'s job, not the provider's: it sends `DELETE /api/me/push-token/` before `clearTokens()`, because that is the last moment the request still has an access token to authenticate with.
+
+Two backend events reach a student: a mark written for them, and an assessment that moves to `OPEN`. The payload carries `{"type": "mark" | "assessment"}`, and the tap handler routes `mark` to `/student/results` and `assessment` to `/student`. `setNotificationHandler` shows the banner and the notification-list entry while the app is in the foreground.
+
+What it needs: a development or EAS build (Expo Go cannot register push tokens), `extra.eas.projectId` in `app.json`, and push credentials on the Expo project. The `expo-notifications` plugin entry carries the Android notification icon, the `#0B6FA8` tint and the default channel id, so those land only after `npx expo prebuild` or an EAS build. Web is skipped — browser push needs a service worker and VAPID keys, so `IS_PUSH_CAPABLE` is false there.
+
 ## Authentication
 
 This app is a mobile client per `docs/api-conventions.md`, so it uses the JSON token path rather than cookies:
@@ -106,7 +118,7 @@ Error bodies are parsed both ways: SimpleJWT returns `{"detail": ...}` on the to
 
 ## Current state
 
-Implemented: sign-in, session restore, refresh, logout and role routing, the `AppShell` navigation, a dashboard per role from `/api/dashboard/`, plus every screen the API currently serves — milestone 1/2 (users, academic years, semesters, modules, enrollments with single and bulk add) and milestone 3/4 (lecture plans with distributions and assessments, publish/revert, the assessment state buttons, the marking roster and mark correction). All of it is themed for light and dark and laid out for phones, tablets and desktop browsers.
+Implemented: sign-in, session restore, refresh, logout and role routing, the `AppShell` navigation, a dashboard per role from `/api/dashboard/`, Expo push registration for the two mark and assessment events, plus every screen the API currently serves — milestone 1/2 (users, academic years, semesters, modules, enrollments with single and bulk add) and milestone 3/4 (an admin offers a module of the current academic year to one named teacher, which creates that module's plan in `DRAFT`; the teacher then adds assessment types and the raw max marks of each assessment, publish/revert, the assessment state buttons, the marking roster and mark correction). There is no percentage weighting anywhere: a module is scored out of the sum of its assessment marks, and the modules list names the teacher each module was offered to. All of it is themed for light and dark and laid out for phones, tablets and desktop browsers.
 
 Verification uses `npm run web` against the API on `:8000`. Every route is screenshotted in headless Chrome at 390×1500, 820×1500 and 1440×1400 in both themes — 19 routes × 3 widths × 2 themes — and each run asserts the breakpoint the app itself resolved, that nothing overflows the viewport, and that the console stayed clean. `LayoutPreviewBar` (dev builds only) forces a breakpoint on one screen when you need to compare them side by side.
 

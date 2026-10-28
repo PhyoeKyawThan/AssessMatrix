@@ -31,7 +31,7 @@ export function Sheet({ title, visible, onDismiss, children }: SheetProps) {
         style={[styles.backdrop, { backgroundColor: colors.scrim }]}
       >
         <Pressable
-          accessibilityRole="dialog"
+          role="dialog"
           accessibilityLabel={title}
           onPress={() => undefined}
           style={[

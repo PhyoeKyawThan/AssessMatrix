@@ -1,0 +1,86 @@
+import Constants from 'expo-constants';
+import {
+  addNotificationResponseReceivedListener,
+  AndroidImportance,
+  getExpoPushTokenAsync,
+  getPermissionsAsync,
+  requestPermissionsAsync,
+  setNotificationChannelAsync,
+  setNotificationHandler,
+} from 'expo-notifications';
+import { router, type Href } from 'expo-router';
+import { useEffect, type ReactNode } from 'react';
+import { Platform } from 'react-native';
+
+import { useAuth } from '@/features/auth';
+import { notificationsApi } from '@/features/notifications/api';
+
+/** Web push needs a service worker and VAPID keys, so registration stays on Android and iOS. */
+const IS_PUSH_CAPABLE = Platform.OS !== 'web';
+
+const CHANNEL = 'assessmatrix-updates';
+
+/** Every push the backend sends carries the event type, which is also the tap destination. */
+function targetRoute(data: Record<string, unknown> | undefined): Href | null {
+  if (data?.type === 'mark') return '/student/results';
+  if (data?.type === 'assessment') return '/student';
+  return null;
+}
+
+async function registerForPush(): Promise<void> {
+  // Without the EAS project id there are no push credentials: Expo Go, and any unbuilt run.
+  const projectId = Constants.expoConfig?.extra?.eas?.projectId;
+  if (projectId === undefined) return;
+
+  if ((await getPermissionsAsync()).status !== 'granted') {
+    if ((await requestPermissionsAsync()).status !== 'granted') return;
+  }
+
+  // The config plugin points Android messages at this channel; it still has to be created.
+  await setNotificationChannelAsync(CHANNEL, {
+    name: 'Assessment updates',
+    importance: AndroidImportance.HIGH,
+  }).catch(() => undefined);
+
+  const token = await getExpoPushTokenAsync({ projectId });
+  await notificationsApi.register(token.data);
+}
+
+/**
+ * Mounts the foreground display rules and registers the signed-in account's push token.
+ *
+ * A failed registration is silent on purpose: the app works either way, it just stays quiet.
+ * Clearing the token belongs to `signOut`, which still has credentials to authenticate the call.
+ */
+export function PushNotifications({ children }: { children: ReactNode }) {
+  const { status, user } = useAuth();
+
+  useEffect(() => {
+    if (!IS_PUSH_CAPABLE) return;
+
+    setNotificationHandler({
+      handleNotification: async () => ({
+        shouldShowBanner: true,
+        shouldShowList: true,
+        shouldPlaySound: true,
+        shouldSetBadge: false,
+      }),
+    });
+
+    const subscription = addNotificationResponseReceivedListener((response) => {
+      const target = targetRoute(response.notification.request.content.data);
+      if (target !== null) router.push(target);
+    });
+
+    return () => {
+      subscription.remove();
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!IS_PUSH_CAPABLE || status !== 'signed-in') return;
+    void registerForPush().catch(() => undefined);
+  }, [status, user?.id]);
+
+  return <>{children}</>;
+}

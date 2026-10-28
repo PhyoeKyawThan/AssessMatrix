@@ -59,17 +59,19 @@ export function PlansScreen({ scope, readOnly = false }: PlansScreenProps) {
 
   const basePath = role === 'ADMIN' ? '/admin/plans' : role === 'TEACHER' ? '/teacher/plans' : '/student/plans';
   const canAssign = role === 'ADMIN';
+  /** Offering a module — creating its plan with a named teacher — is an admin action. */
+  const canOffer = role === 'ADMIN' && !readOnly;
 
   const modules = usePaged<Module>(
     (page) =>
-      readOnly
-        ? Promise.resolve({ count: 0, next: null, previous: null, results: [] })
-        : catalogApi.modules.list({ page, page_size: 100 }),
-    [readOnly],
+      canOffer
+        ? catalogApi.modules.list({ page, page_size: 100, current_year: 'true', planned: 'false' })
+        : Promise.resolve({ count: 0, next: null, previous: null, results: [] }),
+    [canOffer],
   );
   const moduleOptions = modules.items.map((item) => ({
     value: item.id,
-    label: `${item.module_code} — ${item.module_name}`,
+    label: `${item.module_code} — ${item.module_name} · ${item.academic_year}`,
   }));
 
   const lecturers = usePaged<User>(
@@ -82,16 +84,16 @@ export function PlansScreen({ scope, readOnly = false }: PlansScreenProps) {
   const lecturerOptions = lecturers.items.map((item) => ({ value: item.id, label: item.full_name || item.username }));
 
   const form = useEntityForm<Draft>({
-    blank: { id: null, module_id: '', lecturer_id: user?.id ?? '', note: '' },
+    blank: { id: null, module_id: '', lecturer_id: '', note: '' },
     validate: (draft) => ({
-      module_id: draft.module_id === '' ? 'Choose the module this plan covers.' : null,
-      lecturer_id: draft.lecturer_id === '' ? 'Choose a teacher.' : null,
+      module_id: draft.module_id === '' ? 'Choose the module to offer.' : null,
+      lecturer_id: draft.lecturer_id === '' ? 'Choose the teacher who will own it.' : null,
     }),
     save: (draft) => {
       if (draft.id === null) {
         return teachingApi.plans.create({
           module_id: draft.module_id,
-          lecturer_id: canAssign ? draft.lecturer_id : undefined,
+          lecturer_id: draft.lecturer_id,
           note: draft.note,
         });
       }
@@ -105,8 +107,12 @@ export function PlansScreen({ scope, readOnly = false }: PlansScreenProps) {
     <Screen scroll width="content">
       <AppHeader
         title={scope === 'mine' ? 'My lecture plans' : 'Lecture plans'}
-        subtitle="One plan per module. Publish it once the weight split and every assessment row are complete."
-        actions={readOnly ? null : <Button label="New plan" onPress={() => form.open()} />}
+        subtitle={
+          scope === 'mine'
+            ? 'A plan in Draft means the semester scheme is still yours to write. Marks are raw — no weighting.'
+            : 'Admins offer a module of the current academic year to one teacher. Everything else follows from that.'
+        }
+        actions={canOffer ? <Button label="Offer a module" onPress={() => form.open()} /> : null}
       />
 
       <Card title="Filters">
@@ -141,18 +147,21 @@ export function PlansScreen({ scope, readOnly = false }: PlansScreenProps) {
         items={list.items}
         loading={list.loading}
         error={list.error}
-        emptyMessage={scope === 'mine' ? 'You have no lecture plans yet.' : 'No lecture plans match these filters.'}
+        emptyMessage={scope === 'mine' ? 'No module has been offered to you in this academic year yet.' : 'No lecture plans match these filters.'}
         onRetry={list.reload}
         grid={layout.detailColumns === 2}
         footer={<Pager page={list.page} pageCount={list.pageCount} onChange={list.setPage} disabled={list.loading} />}
         renderItem={(plan) => (
           <RecordRow
             title={`${plan.module.module_code} — ${plan.module.module_name}`}
-            subtitle={`${plan.lecturer.full_name} · ${plan.academic_year} · ${plan.percentage_total}% weighted`}
+            subtitle={`${plan.lecturer.full_name} · ${plan.semester.semester_name} · ${plan.academic_year}`}
             badge={
               <View style={{ flexDirection: 'row', gap: 6, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
                 <Badge label={plan.status} tone={plan.status === 'PUBLISHED' ? 'success' : 'neutral'} />
-                {plan.percentage_total !== 100 ? <Badge label={`${plan.percentage_total}/100`} tone="danger" /> : null}
+                <Badge
+                  label={`${plan.assessment_total} assessments · ${plan.total_marks} marks`}
+                  tone={plan.assessment_total === 0 ? 'danger' : 'neutral'}
+                />
               </View>
             }
             onPress={() => router.push(`${basePath}/${plan.id}` as Href)}
@@ -161,9 +170,9 @@ export function PlansScreen({ scope, readOnly = false }: PlansScreenProps) {
       />
 
       <FormSheet
-        title={form.draft?.id === null || form.draft === undefined ? 'New lecture plan' : 'Lecture plan'}
+        title={form.draft?.id === null || form.draft === undefined ? 'Offer a module' : 'Lecture plan'}
         form={form}
-        hint="A second plan for the same module returns 409. The academic year is taken from the module's semester."
+        hint="Only the current academic year is offered, and only modules nobody has been given yet. The teacher starts in Draft and writes the raw assessment marks themselves."
       >
         {(draft, update) => (
           <>
@@ -174,7 +183,7 @@ export function PlansScreen({ scope, readOnly = false }: PlansScreenProps) {
             )}
             {canAssign ? (
               <Picker
-                label="Lecturer"
+                label="Teacher"
                 loading={lecturers.loading}
                 options={lecturerOptions}
                 value={draft.lecturer_id}

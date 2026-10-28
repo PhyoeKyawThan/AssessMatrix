@@ -11,6 +11,8 @@ export interface SessionUser {
   is_staff: boolean;
   last_login: string | null;
   date_joined: string;
+  /** Whether this account has a device registered for push. The token itself never comes back. */
+  has_push_token: boolean;
 }
 
 export const ROLE_LABELS: Record<Role, string> = {

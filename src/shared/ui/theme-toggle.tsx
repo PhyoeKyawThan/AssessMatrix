@@ -25,7 +25,7 @@ export function ThemeToggle({ variant = 'header' }: ThemeToggleProps) {
 
   return (
     <View
-      accessibilityRole="group"
+      role="group"
       accessibilityLabel="Colour theme"
       style={[styles.row, compact ? styles.compact : styles.expanded, onDark && styles.rowDark, surface]}
     >

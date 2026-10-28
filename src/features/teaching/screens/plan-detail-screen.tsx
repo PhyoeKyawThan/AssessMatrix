@@ -17,6 +17,7 @@ import {
 } from '@/features/teaching/api';
 import { useEntityForm } from '@/shared/api/use-entity-form';
 import { usePaged } from '@/shared/api/use-page';
+import { useResponsive } from '@/shared/theme';
 import { useResource, useSubmit } from '@/shared/api/use-resource';
 import { isDateOnly } from '@/shared/utils/format';
 import {
@@ -39,7 +40,6 @@ type DistributionDraft = {
   id: string | null;
   lecture_plan_id: string;
   assessment_type: AssessmentType;
-  percentage: string;
   total_assessment: string;
   display_order: string;
 };
@@ -65,6 +65,7 @@ export function PlanDetailScreen() {
   const params = useLocalSearchParams<{ planId?: string }>();
   const planId = String(params.planId ?? '');
   const { user } = useAuth();
+  const layout = useResponsive();
   const [notice, setNotice] = useState<string | null>(null);
   const actions = useSubmit();
 
@@ -94,17 +95,13 @@ export function PlanDetailScreen() {
       id: null,
       lecture_plan_id: planId,
       assessment_type: 'QUIZ',
-      percentage: '',
       total_assessment: '1',
       display_order: String(distributions.count + 1),
     },
     validate: (value) => {
-      const percentage = Number(value.percentage);
       const total = Number(value.total_assessment);
       const order = Number(value.display_order);
       return {
-        percentage:
-          Number.isInteger(percentage) && percentage >= 1 && percentage <= 100 ? null : 'A whole number from 1 to 100.',
         total_assessment: Number.isInteger(total) && total >= 1 ? null : 'At least one assessment.',
         display_order: Number.isInteger(order) && order >= 1 ? null : 'Position starts at 1.',
       };
@@ -113,7 +110,6 @@ export function PlanDetailScreen() {
       const body = {
         lecture_plan_id: value.lecture_plan_id,
         assessment_type: value.assessment_type,
-        percentage: Number(value.percentage),
         total_assessment: Number(value.total_assessment),
         display_order: Number(value.display_order),
       };
@@ -189,7 +185,7 @@ export function PlanDetailScreen() {
 
   const distributionOptions = distributions.items.map((item) => ({
     value: item.id,
-    label: `${item.assessment_type} (${item.percentage}%)`,
+    label: `${item.assessment_type} · ${item.total_marks} marks`,
   }));
   const published = data.status === 'PUBLISHED';
 
@@ -208,7 +204,9 @@ export function PlanDetailScreen() {
 
       <Card title="Plan">
         <Body>{`Lecturer: ${data.lecturer.full_name}`}</Body>
-        <Body tone="muted">{`Academic year ${data.academic_year} · weighted ${data.percentage_total}% of 100%`}</Body>
+        <Body tone="muted">
+          {`Semester ${data.semester.semester_no} (${data.semester.semester_name}) · Academic year ${data.academic_year} · ${data.assessment_total} assessments · ${data.total_marks} marks in total`}
+        </Body>
         <Field
           label="Note"
           value={note ?? data.note}
@@ -259,16 +257,16 @@ export function PlanDetailScreen() {
         </View>
         {canWrite && !published ? (
           <Body tone="muted">
-            Publish needs at least one distribution, percentages that total 100, matching assessment counts, sequences
-            from 1, and a title plus a maximum mark above 0 on every item.
+            Publish needs at least one assessment type, the matching number of assessments in each, sequences from 1,
+            and a title plus a maximum mark above 0 on every item. Marks are raw, so any total publishes.
           </Body>
         ) : null}
       </Card>
 
       <View style={{ gap: 10 }}>
-        <SectionTitle>Assessment weighting</SectionTitle>
+        <SectionTitle>Assessment types</SectionTitle>
         {canWrite && draftPlan ? (
-          <Button label="Add distribution" onPress={() => distributionForm.open()} />
+          <Button label="Add assessment type" onPress={() => distributionForm.open()} />
         ) : null}
       </View>
 
@@ -276,7 +274,7 @@ export function PlanDetailScreen() {
         items={distributions.items}
         loading={distributions.loading}
         error={distributions.error}
-        emptyMessage="No distributions yet."
+        emptyMessage="No assessment types yet. Add one to start listing assessments."
         onRetry={distributions.reload}
         grid={false}
         renderItem={(distribution) => {
@@ -286,7 +284,7 @@ export function PlanDetailScreen() {
 
           return (
             <Card
-              title={`${distribution.assessment_type} · ${distribution.percentage}%`}
+              title={`${distribution.assessment_type} · ${distribution.total_marks} marks`}
               actions={
                 <View style={{ flexDirection: 'row', gap: 6, flexWrap: 'wrap' }}>
                   <Badge
@@ -307,7 +305,6 @@ export function PlanDetailScreen() {
                             id: distribution.id,
                             lecture_plan_id: distribution.lecture_plan_id,
                             assessment_type: distribution.assessment_type,
-                            percentage: String(distribution.percentage),
                             total_assessment: String(distribution.total_assessment),
                             display_order: String(distribution.display_order),
                           })
@@ -329,76 +326,91 @@ export function PlanDetailScreen() {
               {rows.length === 0 ? (
                 <Body tone="faint">No assessments in this group yet.</Body>
               ) : (
-                rows.map((assessment) => (
-                  <RecordRow
-                    key={assessment.id}
-                    title={`${assessment.sequence_no}. ${assessment.title}`}
-                    subtitle={`Max ${assessment.max_mark}${assessment.assessment_date ? ` · ${assessment.assessment_date}` : ''}`}
-                    badge={<Badge label={assessment.status} tone={STATUS_TONE[assessment.status]} />}
-                    trailing={
-                      <View style={{ flexDirection: 'row', gap: 6, flexWrap: 'wrap' }}>
-                        {canWrite ? (
-                          <>
-                            {assessment.status === 'SCHEDULED' && published ? (
-                              <Button
-                                label="Open"
-                                variant="secondary"
-                                onPress={() =>
-                                  runAction(`${assessment.title} is OPEN.`, () => teachingApi.assessments.open(assessment.id))
-                                }
-                              />
-                            ) : null}
-                            {assessment.status === 'OPEN' ? (
-                              <Button
-                                label="Close"
-                                variant="secondary"
-                                onPress={() =>
-                                  runAction(`${assessment.title} is CLOSED.`, () => teachingApi.assessments.close(assessment.id))
-                                }
-                              />
-                            ) : null}
-                            {(assessment.status === 'OPEN' || assessment.status === 'CLOSED') && published ? (
-                              <Button
-                                label="Mark graded"
-                                onPress={() =>
-                                  runAction(
-                                    (result) =>
-                                      (result as Assessment).run_finished === true
-                                        ? `${assessment.title} graded — this module's run is finished.`
-                                        : `${assessment.title} is GRADED.`,
-                                    () => teachingApi.assessments.markGraded(assessment.id),
-                                  )
-                                }
-                              />
-                            ) : null}
+                rows.map((assessment) => {
+                  const buttons = (
+                    <>
+                      {canWrite ? (
+                        <>
+                          {assessment.status === 'SCHEDULED' && published ? (
                             <Button
-                              label="Marks"
+                              label="Open"
                               variant="secondary"
-                              onPress={() => router.push(`${basePath}/${assessment.id}` as Href)}
+                              onPress={() =>
+                                runAction(`${assessment.title} is OPEN.`, () => teachingApi.assessments.open(assessment.id))
+                              }
                             />
-                            {draftPlan ? (
-                              <Button
-                                label="Edit"
-                                variant="secondary"
-                                onPress={() =>
-                                  assessmentForm.open({
-                                    id: assessment.id,
-                                    assessment_distribution_id: assessment.assessment_distribution_id,
-                                    title: assessment.title,
-                                    sequence_no: String(assessment.sequence_no),
-                                    max_mark: assessment.max_mark,
-                                    assessment_date: assessment.assessment_date ?? '',
-                                    due_at: assessment.due_at ?? '',
-                                  })
-                                }
-                              />
-                            ) : null}
-                          </>
-                        ) : null}
-                      </View>
-                    }
-                  />
-                ))
+                          ) : null}
+                          {assessment.status === 'OPEN' ? (
+                            <Button
+                              label="Close"
+                              variant="secondary"
+                              onPress={() =>
+                                runAction(`${assessment.title} is CLOSED.`, () => teachingApi.assessments.close(assessment.id))
+                              }
+                            />
+                          ) : null}
+                          {(assessment.status === 'OPEN' || assessment.status === 'CLOSED') && published ? (
+                            <Button
+                              label="Mark graded"
+                              onPress={() =>
+                                runAction(
+                                  (result) =>
+                                    (result as Assessment).run_finished === true
+                                      ? `${assessment.title} graded — this module's run is finished.`
+                                      : `${assessment.title} is GRADED.`,
+                                  () => teachingApi.assessments.markGraded(assessment.id),
+                                )
+                              }
+                            />
+                          ) : null}
+                          <Button
+                            label="Marks"
+                            variant="secondary"
+                            onPress={() => router.push(`${basePath}/${assessment.id}` as Href)}
+                          />
+                          {draftPlan ? (
+                            <Button
+                              label="Edit"
+                              variant="secondary"
+                              onPress={() =>
+                                assessmentForm.open({
+                                  id: assessment.id,
+                                  assessment_distribution_id: assessment.assessment_distribution_id,
+                                  title: assessment.title,
+                                  sequence_no: String(assessment.sequence_no),
+                                  max_mark: assessment.max_mark,
+                                  assessment_date: assessment.assessment_date ?? '',
+                                  due_at: assessment.due_at ?? '',
+                                })
+                              }
+                            />
+                          ) : null}
+                        </>
+                      ) : null}
+                    </>
+                  );
+                  const actions = <View style={{ flexDirection: 'row', gap: 6, flexWrap: 'wrap' }}>{buttons}</View>;
+
+                  // Three action buttons beside a short title leave no room for the title on a phone.
+                  return layout.breakpoint === 'compact' ? (
+                    <View key={assessment.id} style={{ gap: 8 }}>
+                      <RecordRow
+                        title={`${assessment.sequence_no}. ${assessment.title}`}
+                        subtitle={`Max ${assessment.max_mark}${assessment.assessment_date ? ` · ${assessment.assessment_date}` : ''}`}
+                        badge={<Badge label={assessment.status} tone={STATUS_TONE[assessment.status]} />}
+                      />
+                      {actions}
+                    </View>
+                  ) : (
+                    <RecordRow
+                      key={assessment.id}
+                      title={`${assessment.sequence_no}. ${assessment.title}`}
+                      subtitle={`Max ${assessment.max_mark}${assessment.assessment_date ? ` · ${assessment.assessment_date}` : ''}`}
+                      badge={<Badge label={assessment.status} tone={STATUS_TONE[assessment.status]} />}
+                      trailing={actions}
+                    />
+                  );
+                })
               )}
               {canWrite && draftPlan ? (
                 <Button
@@ -423,9 +435,9 @@ export function PlanDetailScreen() {
       />
 
       <FormSheet
-        title={distributionForm.draft?.id === null || distributionForm.draft === undefined ? 'Add distribution' : 'Edit distribution'}
+        title={distributionForm.draft?.id === null || distributionForm.draft === undefined ? 'Add assessment type' : 'Edit assessment type'}
         form={distributionForm}
-        hint="Type and position are unique inside the plan. After publish these values freeze and writes return 409."
+        hint="One type per plan — Quiz, Midterm, Final, and so on. There is no weight to set; the marks you type on each assessment are what the module is scored out of. Type and position are unique inside the plan, and both freeze after publish."
       >
         {(value, update) => (
           <>
@@ -437,27 +449,20 @@ export function PlanDetailScreen() {
             />
             <FieldRow>
               <Field
-                label="Weight %"
-                value={value.percentage}
-                keyboardType="number-pad"
-                error={distributionForm.problems.percentage}
-                onChangeText={(percentage) => update({ percentage })}
-              />
-              <Field
                 label="Number of assessments"
                 value={value.total_assessment}
                 keyboardType="number-pad"
                 error={distributionForm.problems.total_assessment}
                 onChangeText={(total_assessment) => update({ total_assessment })}
               />
+              <Field
+                label="Display order"
+                value={value.display_order}
+                keyboardType="number-pad"
+                error={distributionForm.problems.display_order}
+                onChangeText={(display_order) => update({ display_order })}
+              />
             </FieldRow>
-            <Field
-              label="Display order"
-              value={value.display_order}
-              keyboardType="number-pad"
-              error={distributionForm.problems.display_order}
-              onChangeText={(display_order) => update({ display_order })}
-            />
           </>
         )}
       </FormSheet>
@@ -475,7 +480,7 @@ export function PlanDetailScreen() {
           <>
             {value.id === null ? (
               <Picker
-                label="Distribution"
+                label="Assessment type"
                 options={distributionOptions}
                 value={value.assessment_distribution_id}
                 onChange={(assessment_distribution_id) => update({ assessment_distribution_id })}

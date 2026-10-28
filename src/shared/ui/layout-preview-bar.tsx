@@ -1,7 +1,7 @@
 import { Pressable, StyleSheet, View } from 'react-native';
 
-import { useHydrated } from '@/shared/theme/hydration';
 import { useLayoutOverride, useResponsive, useTheme, type Breakpoint } from '@/shared/theme';
+import { useHydrated } from '@/shared/theme/hydration';
 import { Meta } from '@/shared/ui/text';
 
 const OPTIONS: { value: Breakpoint | null; label: string }[] = [
@@ -27,7 +27,7 @@ export function LayoutPreviewBar() {
   return (
     <View pointerEvents="box-none" style={styles.wrap}>
       <View
-        accessibilityRole="group"
+        role="group"
         accessibilityLabel="Preview layout width"
         style={[styles.bar, { backgroundColor: colors.surface, borderColor: colors.border }]}
       >

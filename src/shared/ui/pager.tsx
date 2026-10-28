@@ -16,7 +16,7 @@ export function Pager({ page, pageCount, onChange, disabled = false }: PagerProp
   if (pageCount <= 1) return null;
 
   return (
-    <View style={[styles.row, { gap: layout.gap - 4 }]} accessibilityRole="group" accessibilityLabel="Pagination">
+    <View style={[styles.row, { gap: layout.gap - 4 }]} role="group" accessibilityLabel="Pagination">
       <View style={styles.cell}>
         <Button
           label="Previous"

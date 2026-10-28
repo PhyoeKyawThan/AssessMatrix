@@ -13,24 +13,27 @@ export interface LecturePlan {
   id: string;
   module_id: string;
   module: { id: string; module_code: string; module_name: string; credit_hours: number };
+  semester: { id: string; semester_no: number; semester_name: string };
   lecturer_id: string;
   lecturer: { id: string; full_name: string; email: string };
   academic_id: string;
   academic_year: string;
   note: string;
   status: PlanStatus;
-  percentage_total: number;
+  assessment_total: number;
+  /** Raw marks the module is scored out of, as a decimal string such as "30.00". */
+  total_marks: string;
 }
 
 export interface AssessmentDistribution {
   id: string;
   lecture_plan_id: string;
   assessment_type: AssessmentType;
-  percentage: number;
   total_assessment: number;
   display_order: number;
   status: DistributionStatus;
   assessment_count: number;
+  total_marks: string;
 }
 
 export interface Assessment {
@@ -68,14 +71,20 @@ export const teachingApi = {
       module_id?: string;
       lecturer_id?: string;
       academic_id?: string;
+      semester_id?: string;
       status?: string;
       page?: number;
       page_size?: number;
     } = {}) => apiRequest<Page<LecturePlan>>(`/api/lecture-plans/${qs(params)}`),
-    mine: (params: { status?: string; academic_id?: string; page?: number; page_size?: number } = {}) =>
-      apiRequest<Page<LecturePlan>>(`/api/me/lecture-plans/${qs(params)}`),
+    mine: (params: {
+      status?: string;
+      academic_id?: string;
+      semester_id?: string;
+      page?: number;
+      page_size?: number;
+    } = {}) => apiRequest<Page<LecturePlan>>(`/api/me/lecture-plans/${qs(params)}`),
     get: (id: string) => apiRequest<LecturePlan>(`/api/lecture-plans/${id}/`),
-    create: (body: { module_id: string; lecturer_id?: string; note?: string }) =>
+    create: (body: { module_id: string; lecturer_id: string; note?: string }) =>
       apiRequest<LecturePlan>('/api/lecture-plans/', { method: 'POST', body }),
     update: (id: string, body: { note?: string; lecturer_id?: string }) =>
       apiRequest<LecturePlan>(`/api/lecture-plans/${id}/`, { method: 'PATCH', body }),
@@ -90,7 +99,6 @@ export const teachingApi = {
     create: (body: {
       lecture_plan_id: string;
       assessment_type: AssessmentType;
-      percentage: number;
       total_assessment: number;
       display_order: number;
     }) => apiRequest<AssessmentDistribution>('/api/assessment-distributions/', { method: 'POST', body }),

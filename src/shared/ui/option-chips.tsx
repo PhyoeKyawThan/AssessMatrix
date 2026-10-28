@@ -31,13 +31,13 @@ export function OptionChips<T extends string>({ label, options, value, onChange 
           {label}
         </Text>
       ) : null}
-      <View style={styles.row} accessibilityRole="radiogroup" accessibilityLabel={label}>
+      <View style={styles.row} role="group" accessibilityLabel={label}>
         {options.map((option) => {
           const selected = option.value === value;
           return (
             <Pressable
               key={option.value}
-              accessibilityRole="radiobutton"
+              role="group"
               accessibilityState={{ selected }}
               onPress={() => onChange(option.value)}
               style={[

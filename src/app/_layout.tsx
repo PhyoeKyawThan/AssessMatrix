@@ -1,15 +1,17 @@
 import { AuthProvider } from '@/features/auth';
+import { PushNotifications } from '@/features/notifications/push-notifications';
 import { LayoutOverrideProvider, ThemeProvider } from '@/shared/theme';
 import { AppStack } from '@/shared/ui/app-stack';
-import { LayoutPreviewBar } from '@/shared/ui/layout-preview-bar';
 
 export default function RootLayout() {
   return (
     <ThemeProvider>
       <LayoutOverrideProvider>
         <AuthProvider>
-          <AppStack />
-          {__DEV__ ? <LayoutPreviewBar /> : null}
+          <PushNotifications>
+            <AppStack />
+            {/* {__DEV__ ? <LayoutPreviewBar /> : null} */}
+          </PushNotifications>
         </AuthProvider>
       </LayoutOverrideProvider>
     </ThemeProvider>

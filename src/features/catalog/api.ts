@@ -28,6 +28,8 @@ export interface Module {
   module_code: string;
   module_name: string;
   credit_hours: number;
+  /** Null until an admin offers the module to a teacher. */
+  lecture_plan: { id: string; status: string; lecturer: { id: string; full_name: string; email: string } } | null;
 }
 
 export type EnrollmentStatus = 'ENROLLED' | 'DROPPED' | 'COMPLETED';
@@ -67,8 +69,16 @@ export const catalogApi = {
     remove: (id: string) => apiRequest<undefined>(`/api/semesters/${id}/`, { method: 'DELETE' }),
   },
   modules: {
-    list: (params: { semester_id?: string; academic_id?: string; search?: string; page?: number; page_size?: number } = {}) =>
-      apiRequest<Page<Module>>(`/api/modules/${qs(params)}`),
+    list: (params: {
+      semester_id?: string;
+      academic_id?: string;
+      lecturer_id?: string;
+      current_year?: string;
+      planned?: string;
+      search?: string;
+      page?: number;
+      page_size?: number;
+    } = {}) => apiRequest<Page<Module>>(`/api/modules/${qs(params)}`),
     create: (body: { semester_id: string; module_code: string; module_name: string; credit_hours: number }) =>
       apiRequest<Module>('/api/modules/', { method: 'POST', body }),
     update: (id: string, body: Record<string, string | number>) =>

@@ -3,6 +3,7 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useState, t
 import { clearTokens, loadTokens, saveTokens } from '@/shared/storage/token-storage';
 import { ApiError } from '@/shared/api/types';
 import { fetchCurrentUser, logoutRequest, signInRequest } from '@/features/auth/api';
+import { notificationsApi } from '@/features/notifications/api';
 import type { SessionUser } from '@/features/auth/types';
 
 type AuthStatus = 'restoring' | 'signed-out' | 'signed-in';
@@ -68,6 +69,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (tokens !== null) {
       // A failed blacklist call must not leave the caller stuck in a signed-in state.
       await logoutRequest(tokens.refresh).catch(() => undefined);
+      // The device is unregistered here rather than in the provider: this is the last moment
+      // the access token still exists, and the DELETE needs it to authenticate.
+      await notificationsApi.clear().catch(() => undefined);
     }
     await clearTokens();
     setUser(null);

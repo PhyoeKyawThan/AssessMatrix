@@ -13,17 +13,19 @@ import {
   Card,
   Field,
   FieldRow,
+  OptionChips,
   Pager,
   Picker,
   RecordRow,
   Screen,
 } from '@/shared/ui';
 
-type Draft = Omit<Module, 'id' | 'academic_id' | 'academic_year'> & { id: string | null };
+type Draft = Omit<Module, 'id' | 'academic_id' | 'academic_year' | 'lecture_plan'> & { id: string | null };
 
 export function ModulesScreen() {
   const [pickedAcademic, setPickedAcademic] = useState<string | null>(null);
   const [pickedSemester, setPickedSemester] = useState<string | null>(null);
+  const [planned, setPlanned] = useState<'ALL' | 'OFFERED' | 'UNOFFERED'>('ALL');
   const [search, setSearch] = useState('');
 
   const academics = usePaged<Academic>((page) => catalogApi.academics.list({ page, page_size: 100 }), []);
@@ -36,8 +38,14 @@ export function ModulesScreen() {
   const semesterId = pickedSemester ?? semesters.items[0]?.id ?? '';
 
   const list = usePaged<Module>(
-    (page) => catalogApi.modules.list({ page, semester_id: semesterId || undefined, search: search || undefined }),
-    [semesterId, search],
+    (page) =>
+      catalogApi.modules.list({
+        page,
+        semester_id: semesterId || undefined,
+        search: search || undefined,
+        planned: planned === 'ALL' ? undefined : planned === 'OFFERED' ? 'true' : 'false',
+      }),
+    [semesterId, search, planned],
   );
 
   const academicOptions = useMemo(
@@ -73,7 +81,7 @@ export function ModulesScreen() {
     <Screen scroll width="content">
       <AppHeader
         title="Modules"
-        subtitle="A module belongs to one semester; the code is unique inside it."
+        subtitle="A module belongs to one semester; the code is unique inside it. The badge shows which teacher it was offered to."
         actions={<Button label="New module" onPress={() => form.open()} />}
       />
 
@@ -100,6 +108,19 @@ export function ModulesScreen() {
               list.setPage(1);
             }}
           />
+          <OptionChips<'ALL' | 'OFFERED' | 'UNOFFERED'>
+            label="Offer status"
+            value={planned}
+            onChange={(next) => {
+              setPlanned(next);
+              list.setPage(1);
+            }}
+            options={[
+              { value: 'ALL', label: 'All' },
+              { value: 'OFFERED', label: 'Has a teacher' },
+              { value: 'UNOFFERED', label: 'Not offered' },
+            ]}
+          />
           <FieldRow>
             <Field
               label="Search"
@@ -120,14 +141,30 @@ export function ModulesScreen() {
         items={list.items}
         loading={list.loading}
         error={list.error}
-        emptyMessage="No modules in this semester."
+        emptyMessage="No module matches these filters."
         onRetry={list.reload}
         footer={<Pager page={list.page} pageCount={list.pageCount} onChange={list.setPage} disabled={list.loading} />}
         renderItem={(module) => (
           <RecordRow
             title={`${module.module_code} — ${module.module_name}`}
-            subtitle={`${module.credit_hours} credit hours`}
-            badge={<Badge label={module.academic_year} tone="neutral" />}
+            subtitle={
+              module.lecture_plan === null
+                ? `${module.credit_hours} credit hours · no teacher offered this module yet`
+                : `${module.credit_hours} credit hours · ${module.lecture_plan.lecturer.full_name}`
+            }
+            badge={
+              <View style={{ flexDirection: 'row', gap: 6, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
+                <Badge label={module.academic_year} tone="neutral" />
+                {module.lecture_plan === null ? (
+                  <Badge label="Not offered" tone="danger" />
+                ) : (
+                  <Badge
+                    label={module.lecture_plan.status === 'PUBLISHED' ? 'Published' : 'Planning'}
+                    tone={module.lecture_plan.status === 'PUBLISHED' ? 'success' : 'info'}
+                  />
+                )}
+              </View>
+            }
             onPress={() => form.open({ ...module })}
           />
         )}
