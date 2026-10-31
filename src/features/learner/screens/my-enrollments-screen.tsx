@@ -2,10 +2,9 @@ import { useState } from 'react';
 
 import { catalogApi, type Enrollment, type EnrollmentStatus } from '@/features/catalog/api';
 import { AppHeader } from '@/features/shell/components/app-header';
-import { ResourceList } from '@/features/shell/components/resource-list';
 import { usePaged } from '@/shared/api/use-page';
 import { formatDate } from '@/shared/utils/format';
-import { Badge, Body, OptionChips, Pager, RecordRow, Screen } from '@/shared/ui';
+import { Badge, Body, OptionChips, Pager, RecordRow, ResponsiveDataView, Screen } from '@/shared/ui';
 
 const STATUSES: EnrollmentStatus[] = ['ENROLLED', 'COMPLETED', 'DROPPED'];
 
@@ -33,14 +32,21 @@ export function MyEnrollmentsScreen() {
 
       <Body tone="muted">{list.count} enrollment rows on the server.</Body>
 
-      <ResourceList
+      <ResponsiveDataView
         items={items}
         loading={list.loading}
         error={list.error}
         emptyMessage="You are not enrolled in any module yet."
         onRetry={list.reload}
         footer={<Pager page={list.page} pageCount={list.pageCount} onChange={list.setPage} disabled={list.loading} />}
-        renderItem={(enrollment) => (
+        keyExtractor={(enrollment) => enrollment.id}
+        columns={[
+          { key: 'code', label: 'Code', minWidth: 100, flex: 0.7, render: (enrollment) => <Body>{enrollment.module.module_code}</Body> },
+          { key: 'module', label: 'Module', minWidth: 220, flex: 1.7, render: (enrollment) => <Body>{enrollment.module.module_name}</Body> },
+          { key: 'enrolled', label: 'Enrolled', minWidth: 140, render: (enrollment) => <Body tone="secondary">{formatDate(enrollment.enrolled_at)}</Body> },
+          { key: 'status', label: 'Status', minWidth: 110, render: (enrollment) => <Badge label={enrollment.status} tone={tone(enrollment.status)} /> },
+        ]}
+        renderCard={(enrollment) => (
           <RecordRow
             title={`${enrollment.module.module_code} — ${enrollment.module.module_name}`}
             subtitle={`Enrolled ${formatDate(enrollment.enrolled_at)}`}

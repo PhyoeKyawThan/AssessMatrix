@@ -6,7 +6,7 @@ import { AppHeader } from '@/features/shell/components/app-header';
 import { usersApi, type User } from '@/features/users/api';
 import { usePaged } from '@/shared/api/use-page';
 import { useSubmit } from '@/shared/api/use-resource';
-import { Badge, Body, Button, CheckRow, ErrorBanner, Field, Pager, Picker, RecordRow, ResponsiveDataView, Screen, Sheet } from '@/shared/ui';
+import { Badge, Body, Button, CheckRow, DateField, ErrorBanner, Pager, Picker, RecordRow, ResponsiveDataView, Screen, Sheet } from '@/shared/ui';
 
 export function StudentPlacementsScreen() {
   const [adding, setAdding] = useState(false);
@@ -118,7 +118,7 @@ export function StudentPlacementsScreen() {
         <Picker label="Major" loading={majors.loading} options={majorOptions} value={selectedMajor} onChange={setMajorId} />
         <Picker label="Study year" options={[1, 2, 3, 4, 5].map((year) => ({ value: String(year), label: `Year ${year}` }))} value={studyYear} onChange={setStudyYear} />
         <Picker label="Academic year and semester" loading={semesters.loading} options={semesterOptions} value={selectedSemester} onChange={setSemesterId} />
-        <Field label="Admission date" value={admittedOn} placeholder="2025-12-01" onChangeText={setAdmittedOn} />
+        <DateField label="Admission date" value={admittedOn} onChange={setAdmittedOn} />
         <Button label="Create placement" loading={submit.pending} disabled={!studentId || !selectedMajor || !selectedSemester || !admittedOn} onPress={create} />
       </Sheet>
 

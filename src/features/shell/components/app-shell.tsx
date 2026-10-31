@@ -1,5 +1,5 @@
 import { Image } from 'expo-image';
-import { usePathname, useRouter } from 'expo-router';
+import { usePathname, useRouter, type Href } from 'expo-router';
 import { useState, type ReactNode } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -257,7 +257,7 @@ function TabBar({ items }: { items: NavItem[] }) {
 function AccountSheet({ visible, onDismiss }: { visible: boolean; onDismiss: () => void }) {
   return (
     <Sheet title="Account" visible={visible} onDismiss={onDismiss}>
-      <AccountDetails />
+      <AccountDetails onNavigate={onDismiss} />
     </Sheet>
   );
 }
@@ -358,9 +358,10 @@ function ShellFooter() {
 }
 
 /** The same identity and sign-out control, rendered inside a light sheet instead of the sidebar. */
-function AccountDetails() {
+function AccountDetails({ onNavigate }: { onNavigate?: () => void } = {}) {
   const layout = useResponsive();
   const { user } = useAuth();
+  const router = useRouter();
   const { submit, leave } = useSignOut();
 
   return (
@@ -372,6 +373,15 @@ function AccountDetails() {
           <Body tone="secondary">{ROLE_LABELS[user.role]}</Body>
           <Body tone="muted">{user.email}</Body>
         </>
+      ) : null}
+      {user ? (
+        <Button
+          label="Open settings"
+          onPress={() => {
+            onNavigate?.();
+            router.push(`/${user.role.toLowerCase()}/settings` as Href);
+          }}
+        />
       ) : null}
       <Button label="Sign out" variant="secondary" loading={submit.pending} onPress={leave} />
     </View>

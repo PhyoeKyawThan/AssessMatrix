@@ -6,7 +6,6 @@ import { useAuth } from '@/features/auth';
 import { catalogApi, type Enrollment } from '@/features/catalog/api';
 import { markingApi, type AssessmentResult } from '@/features/marking/api';
 import { AppHeader } from '@/features/shell/components/app-header';
-import { ResourceList } from '@/features/shell/components/resource-list';
 import { teachingApi, type Assessment } from '@/features/teaching/api';
 import { usePaged } from '@/shared/api/use-page';
 import { useResource, useSubmit } from '@/shared/api/use-resource';
@@ -19,6 +18,7 @@ import {
   Field,
   LoadingBlock,
   Pager,
+  ResponsiveDataView,
   Screen,
 } from '@/shared/ui';
 
@@ -73,6 +73,9 @@ export function AssessmentDetailScreen() {
       ? saved
       : { marks: edit.marks ?? saved.marks, remark: edit.remark ?? saved.remark, resultId: saved.resultId, percentage: saved.percentage };
   };
+
+  const editEnrollment = (enrollmentId: string, patch: Partial<MarkValue>) =>
+    setEdits((current) => ({ ...current, [enrollmentId]: { ...current[enrollmentId], ...patch } }));
 
   const plan = useResource(
     () =>
@@ -204,8 +207,7 @@ export function AssessmentDetailScreen() {
             ? 'Every active student has a mark.'
             : `${missing.length} active student${missing.length === 1 ? '' : 's'} still need a mark.`}
         </Body>
-        <ResourceList
-          grid={false}
+        <ResponsiveDataView
           items={rows}
           loading={enrollments.loading}
           error={enrollments.error}
@@ -219,13 +221,21 @@ export function AssessmentDetailScreen() {
               disabled={enrollments.loading}
             />
           }
-          renderItem={(enrollment) => {
+          keyExtractor={(enrollment) => enrollment.id}
+          columns={[
+            { key: 'student', label: 'Student', flex: 1.5, minWidth: 180, render: (enrollment) => <Body>{enrollment.student.full_name || enrollment.student.email}</Body> },
+            { key: 'status', label: 'Status', minWidth: 110, render: (enrollment) => <Badge label={enrollment.status} tone={enrollment.status === 'DROPPED' ? 'neutral' : 'info'} /> },
+            { key: 'mark', label: `Mark / ${data.max_mark}`, minWidth: 150, render: (enrollment) => {
+              const value = valueFor(enrollment.id);
+              return <Field accessibilityLabel={`Mark for ${enrollment.student.full_name || enrollment.student.email}`} value={value.marks} keyboardType="decimal-pad" placeholder="0.00" editable={canWrite} error={Number(value.marks) > Number(data.max_mark) ? `Above ${data.max_mark}.` : null} onChangeText={(marks) => editEnrollment(enrollment.id, { marks })} />;
+            } },
+            { key: 'remark', label: 'Remark', flex: 1.5, minWidth: 190, render: (enrollment) => <Field accessibilityLabel={`Remark for ${enrollment.student.full_name || enrollment.student.email}`} value={valueFor(enrollment.id).remark} placeholder="Optional" editable={canWrite} onChangeText={(remark) => editEnrollment(enrollment.id, { remark })} /> },
+            { key: 'result', label: 'Result', minWidth: 100, render: (enrollment) => stored[enrollment.id] !== undefined ? <Badge label={`${stored[enrollment.id].percentage}%`} tone="success" /> : <Body tone="faint">Pending</Body> },
+          ]}
+          renderCard={(enrollment) => {
             const value = valueFor(enrollment.id);
             const saved = stored[enrollment.id];
             const overMax = Number(value.marks) > Number(data.max_mark);
-
-            const edit = (patch: Partial<MarkValue>) =>
-              setEdits((current) => ({ ...current, [enrollment.id]: { ...current[enrollment.id], ...patch } }));
 
             return (
               <View style={{ gap: 10 }}>
@@ -243,14 +253,14 @@ export function AssessmentDetailScreen() {
                   placeholder="0.00"
                   editable={canWrite}
                   error={overMax ? `Above the maximum of ${data.max_mark}.` : null}
-                  onChangeText={(marks) => edit({ marks })}
+                  onChangeText={(marks) => editEnrollment(enrollment.id, { marks })}
                 />
                 <Field
                   label="Remark"
                   value={value.remark}
                   placeholder="Optional"
                   editable={canWrite}
-                  onChangeText={(remark) => edit({ remark })}
+                  onChangeText={(remark) => editEnrollment(enrollment.id, { remark })}
                 />
               </View>
             );

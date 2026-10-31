@@ -9,6 +9,7 @@ import { isDateOnly } from '@/shared/utils/format';
 import {
   Badge,
   Body,
+  DateField,
   Field,
   FieldRow,
   OptionChips,
@@ -117,19 +118,18 @@ export function AcademicsScreen() {
               onChangeText={(academic_year) => update({ academic_year })}
             />
             <FieldRow>
-              <Field
+              <DateField
                 label="Start date"
                 value={draft.start_date}
-                placeholder="2026-12-01"
                 error={form.problems.start_date}
-                onChangeText={(start_date) => update({ start_date })}
+                onChange={(start_date) => update({ start_date })}
               />
-              <Field
+              <DateField
                 label="End date"
                 value={draft.end_date}
-                placeholder="2027-09-30"
+                minimumDate={draft.start_date || undefined}
                 error={form.problems.end_date}
-                onChangeText={(end_date) => update({ end_date })}
+                onChange={(end_date) => update({ end_date })}
               />
             </FieldRow>
             <OptionChips<'true' | 'false'>

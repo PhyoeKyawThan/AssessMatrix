@@ -6,7 +6,7 @@ import { FormSheet } from '@/features/shell/components/form-sheet';
 import { useEntityForm } from '@/shared/api/use-entity-form';
 import { usePaged } from '@/shared/api/use-page';
 import { isDateOnly } from '@/shared/utils/format';
-import { Badge, Body, Button, Field, FieldRow, Pager, Picker, RecordRow, ResponsiveDataView, Screen, Sheet } from '@/shared/ui';
+import { Badge, Body, Button, DateField, Field, FieldRow, Pager, Picker, RecordRow, ResponsiveDataView, Screen, Sheet } from '@/shared/ui';
 
 type Draft = Omit<Semester, 'id' | 'academic_year'> & { id: string | null };
 
@@ -125,19 +125,21 @@ export function SemestersScreen() {
               />
             </FieldRow>
             <FieldRow>
-              <Field
+              <DateField
                 label="Start date"
                 value={draft.start_date}
-                placeholder="2026-12-01"
+                minimumDate={academics.items.find((item) => item.id === draft.academic_id)?.start_date}
+                maximumDate={academics.items.find((item) => item.id === draft.academic_id)?.end_date}
                 error={form.problems.start_date}
-                onChangeText={(start_date) => update({ start_date })}
+                onChange={(start_date) => update({ start_date })}
               />
-              <Field
+              <DateField
                 label="End date"
                 value={draft.end_date}
-                placeholder="2027-03-31"
+                minimumDate={draft.start_date || academics.items.find((item) => item.id === draft.academic_id)?.start_date}
+                maximumDate={academics.items.find((item) => item.id === draft.academic_id)?.end_date}
                 error={form.problems.end_date}
-                onChangeText={(end_date) => update({ end_date })}
+                onChange={(end_date) => update({ end_date })}
               />
             </FieldRow>
           </>

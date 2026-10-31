@@ -16,6 +16,14 @@ export function fetchCurrentUser(): Promise<SessionUser> {
   return apiRequest<SessionUser>('/api/me/');
 }
 
+export function updateCurrentUser(body: { full_name?: string; current_password?: string; new_password?: string }): Promise<SessionUser> {
+  return apiRequest<SessionUser>('/api/me/', { method: 'PATCH', body });
+}
+
+export function deleteCurrentUser(): Promise<void> {
+  return apiRequest<void>('/api/me/', { method: 'DELETE' });
+}
+
 /** POST /api/token/logout/ — 204, and the refresh token lands on the blacklist. */
 export function logoutRequest(refresh: string): Promise<void> {
   return apiRequest<void>('/api/token/logout/', { method: 'POST', body: { refresh } });

@@ -3,7 +3,7 @@ import { StyleSheet, Text, TextInput, View, type TextInputProps } from 'react-na
 import { radius, scale, useResponsive, useTheme } from '@/shared/theme';
 
 interface FieldProps extends TextInputProps {
-  label: string;
+  label?: string;
   error?: string | null;
 }
 
@@ -13,9 +13,11 @@ export function Field({ label, error, ...rest }: FieldProps) {
 
   return (
     <View style={{ gap: layout.breakpoint === 'compact' ? 6 : 8 }}>
-      <Text style={[styles.label, { color: colors.textSecondary, fontSize: scale(14, layout.typeScale) }]}>
-        {label}
-      </Text>
+      {label ? (
+        <Text style={[styles.label, { color: colors.textSecondary, fontSize: scale(14, layout.typeScale) }]}>
+          {label}
+        </Text>
+      ) : null}
       <TextInput
         accessibilityLabel={label}
         style={[

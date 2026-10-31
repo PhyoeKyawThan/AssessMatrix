@@ -5,13 +5,12 @@ import { catalogApi, type Enrollment } from '@/features/catalog/api';
 import { markingApi, type AssessmentResult } from '@/features/marking/api';
 import { AppHeader } from '@/features/shell/components/app-header';
 import { FormSheet } from '@/features/shell/components/form-sheet';
-import { ResourceList } from '@/features/shell/components/resource-list';
 import { teachingApi, type Assessment } from '@/features/teaching/api';
 import { useEntityForm } from '@/shared/api/use-entity-form';
 import { usePaged } from '@/shared/api/use-page';
 import { useResource } from '@/shared/api/use-resource';
 import { formatDate } from '@/shared/utils/format';
-import { Badge, Body, Field, Pager, Picker, RecordRow, Screen } from '@/shared/ui';
+import { Badge, Body, Field, Pager, Picker, RecordRow, ResponsiveDataView, Screen } from '@/shared/ui';
 
 type Draft = { id: string | null; marks_obtained: string; remark: string };
 
@@ -87,15 +86,24 @@ export function ResultsScreen() {
         ) : null}
       </View>
 
-      <ResourceList
-        grid={false}
+      <ResponsiveDataView
         items={list.items}
         loading={list.loading}
         error={list.error}
         emptyMessage="No marks recorded yet."
         onRetry={list.reload}
         footer={<Pager page={list.page} pageCount={list.pageCount} onChange={list.setPage} disabled={list.loading} />}
-        renderItem={(result) => {
+        keyExtractor={(result) => result.id}
+        onRowPress={(result) => form.open({ id: result.id, marks_obtained: result.marks_obtained, remark: result.remark })}
+        columns={[
+          { key: 'student', label: 'Student', flex: 1.4, minWidth: 170, render: (result) => <Body>{enrollmentById.get(result.enrollment_id)?.student.full_name ?? result.enrollment_id.slice(0, 8)}</Body> },
+          { key: 'assessment', label: 'Assessment', flex: 1.3, minWidth: 160, render: (result) => <Body tone="secondary">{assessmentById.get(result.assessment_id)?.title ?? result.assessment_id.slice(0, 8)}</Body> },
+          { key: 'module', label: 'Module', minWidth: 100, flex: 0.7, render: (result) => <Body tone="secondary">{enrollmentById.get(result.enrollment_id)?.module.module_code ?? '—'}</Body> },
+          { key: 'mark', label: 'Mark', minWidth: 100, flex: 0.7, render: (result) => <Body>{result.marks_obtained} / {result.max_mark}</Body> },
+          { key: 'percentage', label: 'Percentage', minWidth: 110, flex: 0.8, render: (result) => <Badge label={`${result.percentage}%`} tone="info" /> },
+          { key: 'graded', label: 'Graded', minWidth: 140, render: (result) => <Body tone="secondary">{formatDate(result.graded_at)}</Body> },
+        ]}
+        renderCard={(result) => {
           const assessment = assessmentById.get(result.assessment_id);
           const enrollment = enrollmentById.get(result.enrollment_id);
 

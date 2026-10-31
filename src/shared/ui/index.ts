@@ -2,6 +2,7 @@ export { Badge, type BadgeTone } from '@/shared/ui/badge';
 export { Button } from '@/shared/ui/button';
 export { Card } from '@/shared/ui/card';
 export { CheckRow } from '@/shared/ui/check-row';
+export { DateField } from '@/shared/ui/date-field';
 export { EmptyState, LoadingBlock } from '@/shared/ui/feedback';
 export { ErrorBanner } from '@/shared/ui/error-banner';
 export { Field } from '@/shared/ui/field';

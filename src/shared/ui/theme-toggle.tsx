@@ -1,15 +1,17 @@
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { scale, useResponsive, useTheme, type ThemePreference } from '@/shared/theme';
+import { Icon, type IconName } from '@/shared/ui/icon';
 
-const OPTIONS: { value: ThemePreference; label: string; short: string }[] = [
-  { value: 'system', label: 'System', short: 'A' },
-  { value: 'light', label: 'Light', short: 'L' },
-  { value: 'dark', label: 'Dark', short: 'D' },
+const OPTIONS: { value: ThemePreference; label: string }[] = [
+  { value: 'system', label: 'System' },
+  { value: 'light', label: 'Light' },
+  { value: 'dark', label: 'Dark' },
 ];
+const ICONS: Record<ThemePreference, IconName> = { system: 'monitor', light: 'sun', dark: 'moon' };
 
 interface ThemeToggleProps {
-  /** `onDark` is the single-letter form used inside the sidebar, rail and tab bar. */
+  /** `onDark` is the icon-only control used inside the sidebar and desktop rail. */
   variant?: 'header' | 'onDark';
 }
 
@@ -23,17 +25,30 @@ export function ThemeToggle({ variant = 'header' }: ThemeToggleProps) {
     ? { backgroundColor: colors.brandDeep, borderColor: colors.sidebarBorder }
     : { backgroundColor: colors.surface, borderColor: colors.border };
 
+  if (onDark) {
+    const index = OPTIONS.findIndex((option) => option.value === preference);
+    const next = OPTIONS[(index + 1) % OPTIONS.length];
+    return (
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel={`${OPTIONS[index].label} theme. Change to ${next.label}.`}
+        onPress={() => setPreference(next.value)}
+        style={({ pressed }) => [styles.iconToggle, surface, pressed && { opacity: 0.7 }]}
+      >
+        <Icon name={ICONS[preference]} size={18} color={colors.sidebarText} />
+      </Pressable>
+    );
+  }
+
   return (
     <View
       role="group"
       accessibilityLabel="Colour theme"
-      style={[styles.row, compact ? styles.compact : styles.expanded, onDark && styles.rowDark, surface]}
+      style={[styles.row, compact ? styles.compact : styles.expanded, surface]}
     >
       {OPTIONS.map((option) => {
         const selected = option.value === preference;
-        const tint = onDark
-          ? { active: colors.sidebarActive, idle: colors.sidebarText, fill: colors.sidebarActiveBackground }
-          : { active: colors.onPrimary, idle: colors.textMuted, fill: colors.primary };
+        const tint = { active: colors.onPrimary, idle: colors.textMuted, fill: colors.primary };
 
         return (
           <Pressable
@@ -44,7 +59,7 @@ export function ThemeToggle({ variant = 'header' }: ThemeToggleProps) {
             onPress={() => setPreference(option.value)}
             style={[
               styles.segment,
-              onDark ? styles.segmentMini : compact ? styles.segmentCompact : styles.segmentWide,
+              compact ? styles.segmentCompact : styles.segmentWide,
               selected && { backgroundColor: tint.fill },
             ]}
           >
@@ -52,12 +67,12 @@ export function ThemeToggle({ variant = 'header' }: ThemeToggleProps) {
               style={[
                 styles.label,
                 {
-                  fontSize: scale(onDark ? 12 : 13, layout.typeScale),
+                  fontSize: scale(13, layout.typeScale),
                   color: selected ? tint.active : tint.idle,
                 },
               ]}
             >
-              {onDark ? option.short : option.label}
+              {option.label}
             </Text>
           </Pressable>
         );
@@ -68,12 +83,11 @@ export function ThemeToggle({ variant = 'header' }: ThemeToggleProps) {
 
 const styles = StyleSheet.create({
   row: { flexDirection: 'row', alignSelf: 'flex-end', borderRadius: 999, borderWidth: 1 },
-  rowDark: { alignSelf: 'auto' },
   compact: { padding: 3, gap: 3 },
   expanded: { padding: 4, gap: 4 },
   segment: { borderRadius: 999, alignItems: 'center', justifyContent: 'center' },
   segmentCompact: { paddingHorizontal: 10, minHeight: 32, justifyContent: 'center' },
   segmentWide: { paddingHorizontal: 14, minHeight: 36 },
-  segmentMini: { height: 24, justifyContent: 'center', width: 24 },
+  iconToggle: { alignItems: 'center', borderRadius: 999, borderWidth: 1, height: 34, justifyContent: 'center', width: 34 },
   label: { fontWeight: '700' },
 });

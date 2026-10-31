@@ -3,7 +3,6 @@ import type { ReactNode } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { radius, scale, useResponsive, useTheme } from '@/shared/theme';
-import { ThemeToggle } from '@/shared/ui/theme-toggle';
 
 interface AppHeaderProps {
   title: string;
@@ -16,8 +15,7 @@ export function AppHeader({ title, subtitle, back = false, actions }: AppHeaderP
   const { colors } = useTheme();
   const layout = useResponsive();
   const router = useRouter();
-  // A phone-width row cannot hold the title, the screen action and the theme toggle, so the
-  // actions get their own line below the title instead of overlapping it.
+  // A phone-width row cannot hold the title and screen actions, so actions get their own line.
   const stackedActions = layout.breakpoint === 'compact' && actions !== undefined && actions !== null;
 
   return (
@@ -52,7 +50,6 @@ export function AppHeader({ title, subtitle, back = false, actions }: AppHeaderP
         </View>
         <View style={[styles.actions, stackedActions && styles.stackedActions]}>
           {actions}
-          <ThemeToggle />
         </View>
       </View>
       {subtitle !== undefined && subtitle !== null ? (

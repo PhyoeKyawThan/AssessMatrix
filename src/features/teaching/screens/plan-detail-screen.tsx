@@ -17,13 +17,13 @@ import {
 } from '@/features/teaching/api';
 import { useEntityForm } from '@/shared/api/use-entity-form';
 import { usePaged } from '@/shared/api/use-page';
-import { useResponsive } from '@/shared/theme';
 import { useResource, useSubmit } from '@/shared/api/use-resource';
 import { isDateOnly } from '@/shared/utils/format';
 import {
   Badge,
   Body,
   Button,
+  DateField,
   Card,
   ErrorBanner,
   Field,
@@ -32,6 +32,7 @@ import {
   OptionChips,
   Picker,
   RecordRow,
+  ResponsiveDataView,
   Screen,
   SectionTitle,
 } from '@/shared/ui';
@@ -51,8 +52,29 @@ type AssessmentDraft = {
   sequence_no: string;
   max_mark: string;
   assessment_date: string;
-  due_at: string;
+  due_date: string;
+  due_time: string;
 };
+
+function datePart(value: string | null): string {
+  if (!value) return '';
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return '';
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+}
+
+function timePart(value: string | null): string {
+  if (!value) return '';
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return '';
+  return `${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}`;
+}
+
+function toIsoDateTime(dateOnly: string, timeOnly: string): string {
+  const [year, month, day] = dateOnly.split('-').map(Number);
+  const [hours, minutes] = timeOnly.split(':').map(Number);
+  return new Date(year, month - 1, day, hours, minutes).toISOString();
+}
 
 const STATUS_TONE: Record<AssessmentStatus, 'info' | 'success' | 'neutral' | 'danger'> = {
   SCHEDULED: 'neutral',
@@ -65,7 +87,6 @@ export function PlanDetailScreen() {
   const params = useLocalSearchParams<{ planId?: string }>();
   const planId = String(params.planId ?? '');
   const { user } = useAuth();
-  const layout = useResponsive();
   const [notice, setNotice] = useState<string | null>(null);
   const actions = useSubmit();
 
@@ -129,7 +150,8 @@ export function PlanDetailScreen() {
       sequence_no: '1',
       max_mark: '',
       assessment_date: '',
-      due_at: '',
+      due_date: '',
+      due_time: '',
     },
     validate: (value) => {
       const max = Number(value.max_mark);
@@ -139,7 +161,8 @@ export function PlanDetailScreen() {
         sequence_no: Number.isInteger(sequence) && sequence >= 1 ? null : 'Sequence starts at 1.',
         max_mark: max > 0 ? null : 'Maximum mark must be greater than 0.',
         assessment_date: value.assessment_date === '' || isDateOnly(value.assessment_date) ? null : 'Use YYYY-MM-DD.',
-        due_at: value.due_at === '' || !Number.isNaN(Date.parse(value.due_at)) ? null : 'Use 2027-01-12T10:30:00Z.',
+        due_date: value.due_date === '' && value.due_time === '' ? null : isDateOnly(value.due_date) ? null : 'Choose a due date.',
+        due_time: value.due_date === '' && value.due_time === '' ? null : /^([01]\d|2[0-3]):[0-5]\d$/.test(value.due_time) ? null : 'Use 24-hour time, for example 10:30.',
       };
     },
     save: (value) => {
@@ -148,7 +171,7 @@ export function PlanDetailScreen() {
         sequence_no: Number(value.sequence_no),
         max_mark: value.max_mark,
         assessment_date: value.assessment_date === '' ? null : value.assessment_date,
-        due_at: value.due_at === '' ? null : value.due_at,
+        due_at: value.due_date === '' || value.due_time === '' ? null : toIsoDateTime(value.due_date, value.due_time),
       };
       if (value.id === null) {
         return teachingApi.assessments.create({
@@ -282,6 +305,29 @@ export function PlanDetailScreen() {
             .filter((item) => item.assessment_distribution_id === distribution.id)
             .sort((left, right) => left.sequence_no - right.sequence_no);
 
+          const editAssessment = (assessment: Assessment) => assessmentForm.open({
+            id: assessment.id,
+            assessment_distribution_id: assessment.assessment_distribution_id,
+            title: assessment.title,
+            sequence_no: String(assessment.sequence_no),
+            max_mark: assessment.max_mark,
+            assessment_date: assessment.assessment_date ?? '',
+            due_date: datePart(assessment.due_at),
+            due_time: timePart(assessment.due_at),
+          });
+
+          const assessmentActions = (assessment: Assessment) => (
+            <View style={{ flexDirection: 'row', gap: 6, flexWrap: 'wrap' }}>
+              {canWrite && assessment.status === 'SCHEDULED' && published ? <Button label="Open" variant="secondary" onPress={() => runAction(`${assessment.title} is OPEN.`, () => teachingApi.assessments.open(assessment.id))} /> : null}
+              {canWrite && assessment.status === 'OPEN' ? <Button label="Close" variant="secondary" onPress={() => runAction(`${assessment.title} is CLOSED.`, () => teachingApi.assessments.close(assessment.id))} /> : null}
+              {canWrite && (assessment.status === 'OPEN' || assessment.status === 'CLOSED') && published ? (
+                <Button label="Mark graded" onPress={() => runAction((result) => (result as Assessment).run_finished === true ? `${assessment.title} graded — this module's run is finished.` : `${assessment.title} is GRADED.`, () => teachingApi.assessments.markGraded(assessment.id))} />
+              ) : null}
+              {canWrite ? <Button label="Marks" variant="secondary" onPress={() => router.push(`${basePath}/${assessment.id}` as Href)} /> : null}
+              {canWrite && draftPlan ? <Button label="Edit" variant="secondary" onPress={() => editAssessment(assessment)} /> : null}
+            </View>
+          );
+
           return (
             <Card
               title={`${distribution.assessment_type} · ${distribution.total_marks} marks`}
@@ -323,95 +369,27 @@ export function PlanDetailScreen() {
               }
             >
               <Body tone="muted">{`Position ${distribution.display_order}`}</Body>
-              {rows.length === 0 ? (
-                <Body tone="faint">No assessments in this group yet.</Body>
-              ) : (
-                rows.map((assessment) => {
-                  const buttons = (
-                    <>
-                      {canWrite ? (
-                        <>
-                          {assessment.status === 'SCHEDULED' && published ? (
-                            <Button
-                              label="Open"
-                              variant="secondary"
-                              onPress={() =>
-                                runAction(`${assessment.title} is OPEN.`, () => teachingApi.assessments.open(assessment.id))
-                              }
-                            />
-                          ) : null}
-                          {assessment.status === 'OPEN' ? (
-                            <Button
-                              label="Close"
-                              variant="secondary"
-                              onPress={() =>
-                                runAction(`${assessment.title} is CLOSED.`, () => teachingApi.assessments.close(assessment.id))
-                              }
-                            />
-                          ) : null}
-                          {(assessment.status === 'OPEN' || assessment.status === 'CLOSED') && published ? (
-                            <Button
-                              label="Mark graded"
-                              onPress={() =>
-                                runAction(
-                                  (result) =>
-                                    (result as Assessment).run_finished === true
-                                      ? `${assessment.title} graded — this module's run is finished.`
-                                      : `${assessment.title} is GRADED.`,
-                                  () => teachingApi.assessments.markGraded(assessment.id),
-                                )
-                              }
-                            />
-                          ) : null}
-                          <Button
-                            label="Marks"
-                            variant="secondary"
-                            onPress={() => router.push(`${basePath}/${assessment.id}` as Href)}
-                          />
-                          {draftPlan ? (
-                            <Button
-                              label="Edit"
-                              variant="secondary"
-                              onPress={() =>
-                                assessmentForm.open({
-                                  id: assessment.id,
-                                  assessment_distribution_id: assessment.assessment_distribution_id,
-                                  title: assessment.title,
-                                  sequence_no: String(assessment.sequence_no),
-                                  max_mark: assessment.max_mark,
-                                  assessment_date: assessment.assessment_date ?? '',
-                                  due_at: assessment.due_at ?? '',
-                                })
-                              }
-                            />
-                          ) : null}
-                        </>
-                      ) : null}
-                    </>
-                  );
-                  const actions = <View style={{ flexDirection: 'row', gap: 6, flexWrap: 'wrap' }}>{buttons}</View>;
-
-                  // Three action buttons beside a short title leave no room for the title on a phone.
-                  return layout.breakpoint === 'compact' ? (
-                    <View key={assessment.id} style={{ gap: 8 }}>
-                      <RecordRow
-                        title={`${assessment.sequence_no}. ${assessment.title}`}
-                        subtitle={`Max ${assessment.max_mark}${assessment.assessment_date ? ` · ${assessment.assessment_date}` : ''}`}
-                        badge={<Badge label={assessment.status} tone={STATUS_TONE[assessment.status]} />}
-                      />
-                      {actions}
-                    </View>
-                  ) : (
-                    <RecordRow
-                      key={assessment.id}
-                      title={`${assessment.sequence_no}. ${assessment.title}`}
-                      subtitle={`Max ${assessment.max_mark}${assessment.assessment_date ? ` · ${assessment.assessment_date}` : ''}`}
-                      badge={<Badge label={assessment.status} tone={STATUS_TONE[assessment.status]} />}
-                      trailing={actions}
-                    />
-                  );
-                })
-              )}
+              <ResponsiveDataView
+                items={rows}
+                loading={false}
+                error={null}
+                emptyMessage="No assessments in this group yet."
+                keyExtractor={(assessment) => assessment.id}
+                columns={[
+                  { key: 'sequence', label: 'Item', minWidth: 65, flex: 0.5, render: (assessment) => <Body>{assessment.sequence_no}</Body> },
+                  { key: 'title', label: 'Assessment', minWidth: 180, flex: 1.4, render: (assessment) => <Body>{assessment.title}</Body> },
+                  { key: 'date', label: 'Date', minWidth: 110, render: (assessment) => <Body tone="secondary">{assessment.assessment_date ?? '—'}</Body> },
+                  { key: 'mark', label: 'Maximum', minWidth: 90, flex: 0.7, render: (assessment) => <Body tone="secondary">{assessment.max_mark}</Body> },
+                  { key: 'status', label: 'Status', minWidth: 100, render: (assessment) => <Badge label={assessment.status} tone={STATUS_TONE[assessment.status]} /> },
+                  { key: 'actions', label: 'Actions', minWidth: 260, flex: 2, render: assessmentActions },
+                ]}
+                renderCard={(assessment) => (
+                  <View style={{ gap: 8 }}>
+                    <RecordRow title={`${assessment.sequence_no}. ${assessment.title}`} subtitle={`Max ${assessment.max_mark}${assessment.assessment_date ? ` · ${assessment.assessment_date}` : ''}`} badge={<Badge label={assessment.status} tone={STATUS_TONE[assessment.status]} />} />
+                    {assessmentActions(assessment)}
+                  </View>
+                )}
+              />
               {canWrite && draftPlan ? (
                 <Button
                   label="Add assessment"
@@ -424,7 +402,8 @@ export function PlanDetailScreen() {
                       sequence_no: String(rows.length + 1),
                       max_mark: '',
                       assessment_date: '',
-                      due_at: '',
+                      due_date: '',
+                      due_time: '',
                     })
                   }
                 />
@@ -510,20 +489,26 @@ export function PlanDetailScreen() {
               />
             </FieldRow>
             <FieldRow>
-              <Field
+              <DateField
                 label="Assessment date"
                 value={value.assessment_date}
-                placeholder="2027-01-12"
                 error={assessmentForm.problems.assessment_date}
-                onChangeText={(assessment_date) => update({ assessment_date })}
+                onChange={(assessment_date) => update({ assessment_date })}
+              />
+              <DateField
+                label="Due date"
+                value={value.due_date}
+                error={assessmentForm.problems.due_date}
+                onChange={(due_date) => update({ due_date, due_time: due_date ? (value.due_time || '09:00') : '' })}
               />
               <Field
-                label="Due at"
-                value={value.due_at}
+                label="Due time"
+                value={value.due_time}
                 autoCapitalize="none"
-                placeholder="2027-01-12T10:30:00Z"
-                error={assessmentForm.problems.due_at}
-                onChangeText={(due_at) => update({ due_at })}
+                keyboardType="numbers-and-punctuation"
+                placeholder="09:00"
+                error={assessmentForm.problems.due_time}
+                onChangeText={(due_time) => update({ due_time })}
               />
             </FieldRow>
           </>

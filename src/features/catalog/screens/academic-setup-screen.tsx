@@ -5,7 +5,7 @@ import { setupApi, type AcademicSetupData, type AcademicSetupDraft } from '@/fea
 import { AppHeader } from '@/features/shell/components/app-header';
 import { usePaged } from '@/shared/api/use-page';
 import { useSubmit } from '@/shared/api/use-resource';
-import { Body, Button, Card, CheckRow, ErrorBanner, Field, OptionChips, RecordRow, Screen, SectionTitle } from '@/shared/ui';
+import { Body, Button, Card, CheckRow, DateField, ErrorBanner, Field, OptionChips, RecordRow, Screen, SectionTitle } from '@/shared/ui';
 
 const EMPTY_SETUP: AcademicSetupData = {
   academic: { academic_year: '', start_date: '', end_date: '' },
@@ -49,7 +49,7 @@ export function AcademicSetupScreen() {
   };
 
   const saveAtStep = async (targetStep: number) => {
-    if (!draft) return;
+    if (!draft) return false;
     let saved: AcademicSetupDraft | null = null;
     const name = data.academic?.academic_year ? `${data.academic.academic_year} academic setup` : draft.name;
     const ok = await submit.run(async () => {
@@ -60,6 +60,7 @@ export function AcademicSetupScreen() {
       setDraft(saved);
       drafts.reload();
     }
+    return ok;
   };
 
   const publish = async () => {
@@ -107,8 +108,7 @@ export function AcademicSetupScreen() {
       <AppHeader
         title={data.academic?.academic_year || 'New academic setup'}
         subtitle="Nothing becomes live until the final Publish action succeeds."
-        back
-        actions={<Button label="Save & exit" variant="secondary" loading={submit.pending} onPress={async () => { await saveAtStep(step); setDraft(null); }} />}
+        actions={<Button label="Save & exit" variant="secondary" loading={submit.pending} onPress={async () => { if (await saveAtStep(step)) setDraft(null); }} />}
       />
 
       <Card>
@@ -121,8 +121,8 @@ export function AcademicSetupScreen() {
         <Card title="Academic year">
           <Body tone="muted">Use the full academic label and its overall date range.</Body>
           <Field label="Academic year" placeholder="2026-2027" value={data.academic?.academic_year ?? ''} onChangeText={(academic_year) => setData((value) => ({ ...value, academic: { ...(value.academic ?? { start_date: '', end_date: '' }), academic_year } }))} />
-          <Field label="Start date" placeholder="YYYY-MM-DD" value={data.academic?.start_date ?? ''} onChangeText={(start_date) => setData((value) => ({ ...value, academic: { ...(value.academic ?? { academic_year: '', end_date: '' }), start_date } }))} />
-          <Field label="End date" placeholder="YYYY-MM-DD" value={data.academic?.end_date ?? ''} onChangeText={(end_date) => setData((value) => ({ ...value, academic: { ...(value.academic ?? { academic_year: '', start_date: '' }), end_date } }))} />
+          <DateField label="Start date" value={data.academic?.start_date ?? ''} onChange={(start_date) => setData((value) => ({ ...value, academic: { ...(value.academic ?? { academic_year: '', end_date: '' }), start_date } }))} />
+          <DateField label="End date" value={data.academic?.end_date ?? ''} minimumDate={data.academic?.start_date || undefined} onChange={(end_date) => setData((value) => ({ ...value, academic: { ...(value.academic ?? { academic_year: '', start_date: '' }), end_date } }))} />
         </Card>
       ) : null}
 
@@ -132,8 +132,8 @@ export function AcademicSetupScreen() {
           {(data.semesters ?? EMPTY_SETUP.semesters ?? []).map((semester, index) => (
             <Card key={semester.semester_no} title={`Semester ${semester.semester_no}`}>
               <Field label="Name" value={semester.semester_name} onChangeText={(semester_name) => setData((value) => ({ ...value, semesters: (value.semesters ?? []).map((item, itemIndex) => itemIndex === index ? { ...item, semester_name } : item) }))} />
-              <Field label="Start date" placeholder="YYYY-MM-DD" value={semester.start_date} onChangeText={(start_date) => setData((value) => ({ ...value, semesters: (value.semesters ?? []).map((item, itemIndex) => itemIndex === index ? { ...item, start_date } : item) }))} />
-              <Field label="End date" placeholder="YYYY-MM-DD" value={semester.end_date} onChangeText={(end_date) => setData((value) => ({ ...value, semesters: (value.semesters ?? []).map((item, itemIndex) => itemIndex === index ? { ...item, end_date } : item) }))} />
+              <DateField label="Start date" value={semester.start_date} minimumDate={data.academic?.start_date} maximumDate={data.academic?.end_date} onChange={(start_date) => setData((value) => ({ ...value, semesters: (value.semesters ?? []).map((item, itemIndex) => itemIndex === index ? { ...item, start_date } : item) }))} />
+              <DateField label="End date" value={semester.end_date} minimumDate={semester.start_date || data.academic?.start_date} maximumDate={data.academic?.end_date} onChange={(end_date) => setData((value) => ({ ...value, semesters: (value.semesters ?? []).map((item, itemIndex) => itemIndex === index ? { ...item, end_date } : item) }))} />
             </Card>
           ))}
         </Card>
@@ -164,6 +164,7 @@ export function AcademicSetupScreen() {
                 <OptionChips label="Study year" value={String(module.study_year)} onChange={(studyYear) => setData((value) => ({ ...value, modules: (value.modules ?? []).map((item, itemIndex) => itemIndex === index ? { ...item, study_year: Number(studyYear) } : item) }))} options={[1, 2, 3, 4, 5].map((year) => ({ value: String(year), label: `Year ${year}` }))} />
                 <OptionChips label="Semester" value={String(module.semester_no)} onChange={(semesterNo) => setData((value) => ({ ...value, modules: (value.modules ?? []).map((item, itemIndex) => itemIndex === index ? { ...item, semester_no: Number(semesterNo) as 1 | 2 } : item) }))} options={[{ value: '1', label: 'Semester 1' }, { value: '2', label: 'Semester 2' }]} />
                 <SectionTitle>Available to majors</SectionTitle>
+                <Body tone="muted">Leave all unchecked when the module is shared by every major.</Body>
                 {majors.map((major) => <CheckRow key={major.code} title={`${major.code} — ${major.name}`} checked={module.major_codes.includes(major.code)} onToggle={() => setData((value) => ({ ...value, modules: (value.modules ?? []).map((item, itemIndex) => itemIndex === index ? { ...item, major_codes: item.major_codes.includes(major.code) ? item.major_codes.filter((code) => code !== major.code) : [...item.major_codes, major.code] } : item) }))} />)}
               </Card>
             ))}

@@ -12,7 +12,6 @@ import { Button } from '@/shared/ui/button';
 import { ErrorBanner } from '@/shared/ui/error-banner';
 import { Field } from '@/shared/ui/field';
 import { Screen } from '@/shared/ui/screen';
-import { ThemeToggle } from '@/shared/ui/theme-toggle';
 
 interface FormError {
   title: string;
@@ -82,8 +81,6 @@ export function SignInScreen() {
 
   return (
     <Screen scroll width="form">
-      <View style={styles.utility}><ThemeToggle /></View>
-
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={cardStyle}>
         <View style={[styles.brand, { borderBottomColor: colors.border }]}>
           <Image source={CREST} style={styles.crest} contentFit="contain" />
@@ -134,7 +131,6 @@ export function SignInScreen() {
 }
 
 const styles = StyleSheet.create({
-  utility: { alignItems: 'flex-end' },
   brand: { alignItems: 'center', borderBottomWidth: StyleSheet.hairlineWidth, flexDirection: 'row', gap: 12, paddingBottom: 18 },
   brandCopy: { gap: 1 },
   crest: { height: 42, width: 42 },

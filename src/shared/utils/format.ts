@@ -1,6 +1,6 @@
 const DATE_ONLY = /^\d{4}-\d{2}-\d{2}$/;
 
-/** API date fields are ISO `YYYY-MM-DD` strings; native has no date picker in this app. */
+/** API date fields remain ISO `YYYY-MM-DD` strings behind the themed calendar UI. */
 export function isDateOnly(value: string): boolean {
   return DATE_ONLY.test(value);
 }
