@@ -38,8 +38,8 @@ const styles = StyleSheet.create({
     alignSelf: 'flex-start',
     borderRadius: 999,
     borderWidth: 1,
-    paddingHorizontal: 10,
-    paddingVertical: 4,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
   },
-  text: { fontWeight: '700', letterSpacing: 0.6 },
+  text: { fontWeight: '700', letterSpacing: 0.45 },
 });

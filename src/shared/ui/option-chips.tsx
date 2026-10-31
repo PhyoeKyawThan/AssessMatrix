@@ -1,6 +1,6 @@
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
-import { scale, useResponsive, useTheme } from '@/shared/theme';
+import { radius, scale, useResponsive, useTheme } from '@/shared/theme';
 
 export interface Option<T extends string> {
   value: T;
@@ -46,13 +46,14 @@ export function OptionChips<T extends string>({ label, options, value, onChange 
                   minHeight: layout.breakpoint === 'compact' ? 44 : 46,
                   paddingHorizontal: layout.gap - 4,
                   borderColor: selected ? colors.primary : colors.inputBorder,
-                  backgroundColor: selected ? colors.primary : colors.inputBackground,
+                  backgroundColor: selected ? colors.tones.primary.background : colors.inputBackground,
+                  borderRadius: radius.input,
                 },
               ]}
             >
               <Text
                 style={{
-                  color: selected ? colors.onPrimary : colors.textSecondary,
+                  color: selected ? colors.tones.primary.text : colors.textSecondary,
                   fontWeight: '600',
                   fontSize: scale(14, layout.typeScale),
                 }}
@@ -69,5 +70,5 @@ export function OptionChips<T extends string>({ label, options, value, onChange 
 
 const styles = StyleSheet.create({
   row: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-  chip: { borderRadius: 999, borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
+  chip: { borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
 });

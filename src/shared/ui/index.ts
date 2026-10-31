@@ -10,6 +10,7 @@ export { OptionChips, type Option } from '@/shared/ui/option-chips';
 export { Picker } from '@/shared/ui/picker';
 export { Pager } from '@/shared/ui/pager';
 export { RecordRow } from '@/shared/ui/record-row';
+export { ResponsiveDataView, type DataColumn } from '@/shared/ui/responsive-data-view';
 export { Screen } from '@/shared/ui/screen';
 export { ScreenHeader } from '@/shared/ui/screen-header';
 export { SessionLoader } from '@/shared/ui/session-loader';

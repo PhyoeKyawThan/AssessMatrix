@@ -193,7 +193,7 @@ export function PlanDetailScreen() {
     <Screen scroll width="content">
       <AppHeader
         title={data.module.module_code}
-        subtitle={`${data.module.module_name} · ${data.module.credit_hours} credit hours`}
+        subtitle={`${data.module.module_name} · Year ${data.module.study_year} · Semester ${data.semester.semester_no}`}
         back
         actions={<Badge label={data.status} tone={published ? 'success' : 'neutral'} />}
       />

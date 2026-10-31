@@ -1,6 +1,8 @@
 export {
   darkPalette,
+  elevation,
   lightPalette,
+  radius,
   type ColorScheme,
   type Palette,
   type Tone,

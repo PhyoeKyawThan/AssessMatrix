@@ -12,7 +12,7 @@ export type AssessmentType = (typeof ASSESSMENT_TYPES)[number];
 export interface LecturePlan {
   id: string;
   module_id: string;
-  module: { id: string; module_code: string; module_name: string; credit_hours: number };
+  module: { id: string; module_code: string; module_name: string; study_year: number };
   semester: { id: string; semester_no: number; semester_name: string };
   lecturer_id: string;
   lecturer: { id: string; full_name: string; email: string };

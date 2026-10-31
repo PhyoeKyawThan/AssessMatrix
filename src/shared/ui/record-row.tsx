@@ -1,7 +1,8 @@
 import type { ReactNode } from 'react';
 import { Pressable, StyleSheet, View, type StyleProp, type ViewStyle } from 'react-native';
 
-import { useResponsive, useTheme } from '@/shared/theme';
+import { radius, useResponsive, useTheme } from '@/shared/theme';
+import { Icon } from '@/shared/ui/icon';
 import { Body, Value } from '@/shared/ui/text';
 
 interface RecordRowProps {
@@ -29,12 +30,13 @@ export function RecordRow({ title, subtitle, badge, trailing, onPress, style }: 
           {trailing}
         </View>
       ) : null}
+      {onPress !== undefined ? <Icon name="chevron" size={16} color={colors.textFaint} /> : null}
     </View>
   );
 
   if (onPress === undefined) {
     return (
-      <View style={[styles.plain, { borderColor: colors.border, backgroundColor: colors.surfaceAlt }]}>{inner}</View>
+      <View style={[styles.plain, { borderColor: colors.border, backgroundColor: colors.surfaceAlt, borderRadius: radius.input }]}>{inner}</View>
     );
   }
 
@@ -44,7 +46,7 @@ export function RecordRow({ title, subtitle, badge, trailing, onPress, style }: 
       onPress={onPress}
       style={({ pressed }) => [
         styles.plain,
-        { borderColor: colors.border, backgroundColor: pressed ? colors.surfaceAlt : colors.surface },
+        { borderColor: colors.border, backgroundColor: pressed ? colors.surfaceAlt : colors.surface, borderRadius: radius.input },
         pressed && styles.pressed,
       ]}
     >
@@ -54,7 +56,7 @@ export function RecordRow({ title, subtitle, badge, trailing, onPress, style }: 
 }
 
 const styles = StyleSheet.create({
-  plain: { borderRadius: 12, borderWidth: 1, paddingHorizontal: 14 },
+  plain: { borderWidth: 1, paddingHorizontal: 14 },
   row: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12 },
   main: { flex: 1, minWidth: 0 },
   side: { alignItems: 'flex-end', flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'flex-end' },

@@ -3,17 +3,16 @@ import { useMemo, useState } from 'react';
 import { catalogApi, type Academic, type Semester } from '@/features/catalog/api';
 import { AppHeader } from '@/features/shell/components/app-header';
 import { FormSheet } from '@/features/shell/components/form-sheet';
-import { ResourceList } from '@/features/shell/components/resource-list';
 import { useEntityForm } from '@/shared/api/use-entity-form';
 import { usePaged } from '@/shared/api/use-page';
 import { isDateOnly } from '@/shared/utils/format';
-import { Badge, Button, Field, FieldRow, Pager, Picker, RecordRow, Screen } from '@/shared/ui';
-import { Card } from '@/shared/ui/card';
+import { Badge, Body, Button, Field, FieldRow, Pager, Picker, RecordRow, ResponsiveDataView, Screen, Sheet } from '@/shared/ui';
 
 type Draft = Omit<Semester, 'id' | 'academic_year'> & { id: string | null };
 
 export function SemestersScreen() {
   const [picked, setPicked] = useState<string | null>(null);
+  const [filtersOpen, setFiltersOpen] = useState(false);
   const academics = usePaged<Academic>((page) => catalogApi.academics.list({ page, page_size: 100 }), []);
   const academicId = picked ?? academics.items[0]?.id ?? '';
   const academicOptions = useMemo(
@@ -53,10 +52,10 @@ export function SemestersScreen() {
       <AppHeader
         title="Semesters"
         subtitle="Dates must fall inside the academic year."
-        actions={<Button label="New semester" onPress={() => form.open()} />}
+        actions={<><Button label={picked ? 'Filter (active)' : 'Filter'} variant="secondary" onPress={() => setFiltersOpen(true)} /><Button label="New semester" onPress={() => form.open()} /></>}
       />
 
-      <Card title="Academic year">
+      <Sheet title="Filter semesters" visible={filtersOpen} onDismiss={() => setFiltersOpen(false)}>
         <Picker
           label="Show semesters of"
           loading={academics.loading}
@@ -67,16 +66,26 @@ export function SemestersScreen() {
             list.setPage(1);
           }}
         />
-      </Card>
+        <Button label="Show results" onPress={() => setFiltersOpen(false)} />
+      </Sheet>
 
-      <ResourceList
+      <ResponsiveDataView
         items={list.items}
         loading={list.loading}
         error={list.error}
         emptyMessage="No semesters for this academic year."
         onRetry={list.reload}
         footer={<Pager page={list.page} pageCount={list.pageCount} onChange={list.setPage} disabled={list.loading} />}
-        renderItem={(semester) => (
+        keyExtractor={(semester) => semester.id}
+        onRowPress={(semester) => form.open({ ...semester })}
+        columns={[
+          { key: 'number', label: 'No.', minWidth: 70, flex: 0.5, render: (semester) => <Body>{semester.semester_no}</Body> },
+          { key: 'name', label: 'Semester', minWidth: 200, flex: 1.5, render: (semester) => <Body>{semester.semester_name}</Body> },
+          { key: 'academic', label: 'Academic year', minWidth: 140, render: (semester) => <Body tone="secondary">{semester.academic_year}</Body> },
+          { key: 'start', label: 'Start date', minWidth: 120, render: (semester) => <Body tone="secondary">{semester.start_date}</Body> },
+          { key: 'end', label: 'End date', minWidth: 120, render: (semester) => <Body tone="secondary">{semester.end_date}</Body> },
+        ]}
+        renderCard={(semester) => (
           <RecordRow
             title={`${semester.semester_no}. ${semester.semester_name}`}
             subtitle={`${semester.start_date} → ${semester.end_date}`}

@@ -1,9 +1,9 @@
+import { useRouter } from 'expo-router';
 import { useState } from 'react';
 import { View } from 'react-native';
 
 import { ROLE_LABELS, type Role } from '@/features/auth/types';
 import { AppHeader } from '@/features/shell/components/app-header';
-import { ResourceList } from '@/features/shell/components/resource-list';
 import { usersApi, type User } from '@/features/users/api';
 import { usePaged } from '@/shared/api/use-page';
 import { useSubmit } from '@/shared/api/use-resource';
@@ -11,13 +11,13 @@ import {
   Badge,
   Body,
   Button,
-  Card,
   ErrorBanner,
   Field,
   FieldRow,
   OptionChips,
   Pager,
   RecordRow,
+  ResponsiveDataView,
   Screen,
   Sheet,
 } from '@/shared/ui';
@@ -49,8 +49,10 @@ function toDraft(user: User): Draft {
 }
 
 export function UsersScreen() {
+  const router = useRouter();
   const [role, setRole] = useState<RoleFilter>('ALL');
   const [search, setSearch] = useState('');
+  const [filtersOpen, setFiltersOpen] = useState(false);
   const [draft, setDraft] = useState<Draft | null>(null);
 
   const list = usePaged<User>(
@@ -90,12 +92,22 @@ export function UsersScreen() {
     }
   };
 
+  const openUser = (user: User) => {
+    if (user.role === 'STUDENT') {
+      router.push({ pathname: '/admin/users/[studentId]', params: { studentId: user.id } });
+    } else {
+      submit.reset();
+      setDraft(toDraft(user));
+    }
+  };
+
   return (
     <Screen scroll width="content">
       <AppHeader
         title="Users"
         subtitle="Admin only. Deleting is blocked while a user teaches, enrolls or grades — deactivate instead."
-        actions={
+        actions={<>
+          <Button label={role !== 'ALL' || search ? 'Filter (active)' : 'Filter'} variant="secondary" onPress={() => setFiltersOpen(true)} />
           <Button
             label="New user"
             onPress={() => {
@@ -103,10 +115,10 @@ export function UsersScreen() {
               setDraft({ ...BLANK });
             }}
           />
-        }
+        </>}
       />
 
-      <Card title="Filters">
+      <Sheet title="Filter users" visible={filtersOpen} onDismiss={() => setFiltersOpen(false)}>
         <OptionChips<RoleFilter>
           label="Role"
           value={role}
@@ -121,30 +133,27 @@ export function UsersScreen() {
             { value: 'STUDENT', label: ROLE_LABELS.STUDENT },
           ]}
         />
-        <FieldRow>
-          <Field
-            label="Search"
-            value={search}
-            autoCapitalize="none"
-            placeholder="Name, email or username"
-            returnKeyType="search"
-            onChangeText={setSearch}
-            onSubmitEditing={() => list.setPage(1)}
-          />
-          <View style={{ justifyContent: 'flex-end' }}>
-            <Button label="Apply" variant="secondary" onPress={() => list.setPage(1)} />
-          </View>
-        </FieldRow>
-      </Card>
+        <Field label="Search" value={search} autoCapitalize="none" placeholder="Name, email or username" returnKeyType="search" onChangeText={setSearch} onSubmitEditing={() => list.setPage(1)} />
+        <Button label="Show results" onPress={() => { list.setPage(1); setFiltersOpen(false); }} />
+      </Sheet>
 
-      <ResourceList
+      <ResponsiveDataView
         items={list.items}
         loading={list.loading}
         error={list.error}
         emptyMessage="No users match these filters."
         onRetry={list.reload}
         footer={<Pager page={list.page} pageCount={list.pageCount} onChange={list.setPage} disabled={list.loading} />}
-        renderItem={(user) => (
+        keyExtractor={(user) => user.id}
+        onRowPress={openUser}
+        columns={[
+          { key: 'name', label: 'Name', flex: 1.4, minWidth: 160, render: (user) => <Body>{user.full_name || user.username}</Body> },
+          { key: 'username', label: 'Username', minWidth: 120, render: (user) => <Body tone="secondary">{user.username}</Body> },
+          { key: 'email', label: 'Email', flex: 1.5, minWidth: 180, render: (user) => <Body tone="secondary">{user.email}</Body> },
+          { key: 'role', label: 'Role', minWidth: 110, render: (user) => <Badge label={ROLE_LABELS[user.role]} tone={user.role === 'ADMIN' ? 'info' : 'neutral'} /> },
+          { key: 'status', label: 'Status', minWidth: 100, render: (user) => <Badge label={user.is_active ? 'Active' : 'Inactive'} tone={user.is_active ? 'success' : 'danger'} /> },
+        ]}
+        renderCard={(user) => (
           <RecordRow
             title={user.full_name || user.username}
             subtitle={`${user.username} · ${user.email}`}
@@ -154,10 +163,12 @@ export function UsersScreen() {
                 <Badge label={user.is_active ? 'Active' : 'Inactive'} tone={user.is_active ? 'success' : 'danger'} />
               </View>
             }
-            onPress={() => {
-              submit.reset();
-              setDraft(toDraft(user));
-            }}
+            trailing={
+              user.role === 'STUDENT' ? (
+                <Button label="Edit" variant="secondary" onPress={() => { submit.reset(); setDraft(toDraft(user)); }} />
+              ) : undefined
+            }
+            onPress={() => openUser(user)}
           />
         )}
       />

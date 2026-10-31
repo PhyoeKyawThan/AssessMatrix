@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react';
 import { StyleSheet, View, type StyleProp, type ViewStyle } from 'react-native';
 
-import { useResponsive, useTheme } from '@/shared/theme';
+import { elevation, radius, useResponsive, useTheme } from '@/shared/theme';
 import { SectionTitle } from '@/shared/ui/text';
 
 interface CardProps {
@@ -19,7 +19,14 @@ export function Card({ title, actions, children, style }: CardProps) {
     <View
       style={[
         styles.card,
-        { backgroundColor: colors.surface, borderColor: colors.border, padding: layout.gap, gap: layout.gap - 4 },
+        {
+          backgroundColor: colors.surface,
+          borderColor: colors.border,
+          borderRadius: radius.card,
+          padding: layout.gap,
+          gap: layout.gap - 4,
+          ...elevation(colors),
+        },
         style,
       ]}
     >
@@ -35,7 +42,13 @@ export function Card({ title, actions, children, style }: CardProps) {
 }
 
 const styles = StyleSheet.create({
-  card: { borderRadius: 16, borderWidth: 1, width: '100%' },
-  header: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between' },
+  card: { borderWidth: 1, width: '100%' },
+  header: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    minHeight: 28,
+  },
   actions: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 8 },
 });

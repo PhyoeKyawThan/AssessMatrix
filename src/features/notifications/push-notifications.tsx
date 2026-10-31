@@ -27,13 +27,28 @@ function targetRoute(data: Record<string, unknown> | undefined): Href | null {
   return null;
 }
 
+/**
+ * A push that never registers is invisible: the app keeps working, it just stays quiet. Each
+ * early return names itself here so a broken setup shows up in the console instead of vanishing.
+ */
+function report(stage: string, error?: unknown): void {
+  const reason = error instanceof Error ? error.message : (error ?? '');
+  console.warn(`[push] ${stage}${reason ? `: ${reason}` : ''}`);
+}
+
 async function registerForPush(): Promise<void> {
   // Without the EAS project id there are no push credentials: Expo Go, and any unbuilt run.
   const projectId = Constants.expoConfig?.extra?.eas?.projectId;
-  if (projectId === undefined) return;
+  if (projectId === undefined) {
+    report('no EAS project id — build with eas build --profile development, Expo Go has no push');
+    return;
+  }
 
   if ((await getPermissionsAsync()).status !== 'granted') {
-    if ((await requestPermissionsAsync()).status !== 'granted') return;
+    if ((await requestPermissionsAsync()).status !== 'granted') {
+      report('notification permission was refused');
+      return;
+    }
   }
 
   // The config plugin points Android messages at this channel; it still has to be created.
@@ -78,8 +93,12 @@ export function PushNotifications({ children }: { children: ReactNode }) {
   }, []);
 
   useEffect(() => {
-    if (!IS_PUSH_CAPABLE || status !== 'signed-in') return;
-    void registerForPush().catch(() => undefined);
+    if (!IS_PUSH_CAPABLE) {
+      report('this platform has no push — expo-notifications tokens are native-only');
+      return;
+    }
+    if (status !== 'signed-in') return;
+    registerForPush().catch((error) => report('token registration failed', error));
   }, [status, user?.id]);
 
   return <>{children}</>;

@@ -6,7 +6,6 @@ import { catalogApi, type Enrollment, type EnrollmentStatus, type EnrollmentBulk
 import { AppHeader } from '@/features/shell/components/app-header';
 import { FormSheet } from '@/features/shell/components/form-sheet';
 import { ResourceList } from '@/features/shell/components/resource-list';
-import { usersApi, type User } from '@/features/users/api';
 import { apiRequest } from '@/shared/api/client';
 import { useEntityForm } from '@/shared/api/use-entity-form';
 import { usePaged } from '@/shared/api/use-page';
@@ -16,7 +15,6 @@ import {
   Badge,
   Body,
   Button,
-  Card,
   CheckRow,
   ErrorBanner,
   Field,
@@ -24,6 +22,7 @@ import {
   Pager,
   Picker,
   RecordRow,
+  ResponsiveDataView,
   Screen,
   Sheet,
 } from '@/shared/ui';
@@ -50,6 +49,7 @@ export function EnrollmentsScreen() {
   const { user } = useAuth();
   const [moduleId, setModuleId] = useState<string | null>(null);
   const [statusFilter, setStatusFilter] = useState('ALL');
+  const [filtersOpen, setFiltersOpen] = useState(false);
   const [adding, setAdding] = useState(false);
   const [bulking, setBulking] = useState(false);
 
@@ -99,13 +99,14 @@ export function EnrollmentsScreen() {
         subtitle="Students inside modules. A dropped student keeps their marks but is left out of grading checks."
         actions={
           <View style={{ flexDirection: 'row', gap: 8, flexWrap: 'wrap' }}>
+            <Button label={statusFilter !== 'ALL' || moduleId ? 'Filter (active)' : 'Filter'} variant="secondary" onPress={() => setFiltersOpen(true)} />
             <Button label="Add student" variant="secondary" onPress={() => setAdding(true)} />
             <Button label="Bulk add" onPress={() => setBulking(true)} />
           </View>
         }
       />
 
-      <Card title="Filters">
+      <Sheet title="Filter enrollments" visible={filtersOpen} onDismiss={() => setFiltersOpen(false)}>
         <View style={{ gap: 14 }}>
           <Picker
             label="Module"
@@ -126,21 +127,31 @@ export function EnrollmentsScreen() {
             }}
             options={[{ value: 'ALL', label: 'All' }, ...STATUSES.map((status) => ({ value: status, label: status }))]}
           />
+          <Button label="Show results" onPress={() => setFiltersOpen(false)} />
         </View>
-      </Card>
+      </Sheet>
 
       <Body tone="muted">
         {list.count} enrollment{list.count === 1 ? '' : 's'} shown. Signed in as {user?.full_name ?? '—'}.
       </Body>
 
-      <ResourceList
+      <ResponsiveDataView
         items={list.items}
         loading={list.loading}
         error={list.error}
         emptyMessage="Nobody is enrolled here yet."
         onRetry={list.reload}
         footer={<Pager page={list.page} pageCount={list.pageCount} onChange={list.setPage} disabled={list.loading} />}
-        renderItem={(enrollment) => (
+        keyExtractor={(enrollment) => enrollment.id}
+        onRowPress={(enrollment) => form.open({ ...enrollment })}
+        columns={[
+          { key: 'student', label: 'Student', flex: 1.4, minWidth: 170, render: (enrollment) => <Body>{enrollment.student.full_name || enrollment.student.email}</Body> },
+          { key: 'email', label: 'Email', flex: 1.4, minWidth: 180, render: (enrollment) => <Body tone="secondary">{enrollment.student.email}</Body> },
+          { key: 'module', label: 'Module', minWidth: 110, render: (enrollment) => <Body>{enrollment.module.module_code}</Body> },
+          { key: 'date', label: 'Enrolled', minWidth: 120, render: (enrollment) => <Body tone="secondary">{formatDate(enrollment.enrolled_at)}</Body> },
+          { key: 'status', label: 'Status', minWidth: 110, render: (enrollment) => <Badge label={enrollment.status} tone={statusTone(enrollment.status)} /> },
+        ]}
+        renderCard={(enrollment) => (
           <RecordRow
             title={enrollment.student.full_name || enrollment.student.email}
             subtitle={enrollment.student.email}
@@ -164,7 +175,7 @@ export function EnrollmentsScreen() {
           value.id === null ? (
             <>
               <Picker label="Module" options={moduleOptions} value={value.module_id} onChange={(module_id) => update({ module_id })} />
-              <StudentPicker selected={value.student_id} onChange={(student_id) => update({ student_id })} />
+              <StudentPicker moduleId={value.module_id} selected={value.student_id} onChange={(student_id) => update({ student_id })} />
             </>
           ) : (
             <>
@@ -209,11 +220,11 @@ export function EnrollmentsScreen() {
   );
 }
 
-function StudentPicker({ selected, onChange }: { selected: string; onChange: (id: string) => void }) {
+function StudentPicker({ moduleId, selected, onChange }: { moduleId: string; selected: string; onChange: (id: string) => void }) {
   const [search, setSearch] = useState('');
-  const students = usePaged<User>(
-    (page) => usersApi.list({ page, page_size: 100, role: 'STUDENT', search: search || undefined }),
-    [search],
+  const students = usePaged<Enrollment['student']>(
+    (page) => catalogApi.modules.eligibleStudents(moduleId, { page, page_size: 100, search: search || undefined }),
+    [moduleId, search],
   );
 
   return (
@@ -230,11 +241,11 @@ function StudentPicker({ selected, onChange }: { selected: string; onChange: (id
         items={students.items}
         loading={students.loading}
         error={students.error}
-        emptyMessage="No students match."
+        emptyMessage="No eligible students match this module's semester and majors."
         onRetry={students.reload}
         renderItem={(student) => (
           <RecordRow
-            title={student.full_name || student.username}
+            title={student.full_name || student.email}
             subtitle={student.email}
             badge={
               <Badge
@@ -268,7 +279,7 @@ function AddSingleSheet({ moduleOptions, defaultModule, onClose, onSaved }: Pick
       {submit.notice !== null ? <Body tone="success">{submit.notice}</Body> : null}
       <View style={{ gap: 16 }}>
         <Picker label="Module" options={moduleOptions} value={moduleId} onChange={setModuleId} />
-        <StudentPicker selected={studentId} onChange={setStudentId} />
+        <StudentPicker moduleId={moduleId} selected={studentId} onChange={setStudentId} />
         <Button
           label="Enrol"
           loading={submit.pending}
@@ -294,9 +305,9 @@ function BulkSheet({ moduleOptions, defaultModule, onClose, onSaved }: PickerShe
   const [search, setSearch] = useState('');
   const [picked, setPicked] = useState<string[]>([]);
   const submit = useSubmit();
-  const students = usePaged<User>(
-    (page) => usersApi.list({ page, page_size: 100, role: 'STUDENT', search: search || undefined }),
-    [search],
+  const students = usePaged<Enrollment['student']>(
+    (page) => catalogApi.modules.eligibleStudents(moduleId, { page, page_size: 100, search: search || undefined }),
+    [moduleId, search],
   );
 
   const toggle = (id: string) =>
@@ -315,17 +326,17 @@ function BulkSheet({ moduleOptions, defaultModule, onClose, onSaved }: PickerShe
           placeholder="Name, email or username"
           onChangeText={setSearch}
         />
-        <Body tone="muted">{picked.length} selected. Students already in the module are skipped, not an error.</Body>
+        <Body tone="muted">{picked.length} selected. Only students in the matching semester and an eligible major are shown.</Body>
         <ResourceList
           grid={false}
           items={students.items}
           loading={students.loading}
           error={students.error}
-          emptyMessage="No students match."
+          emptyMessage="No eligible students match this module."
           onRetry={students.reload}
           renderItem={(student) => (
             <CheckRow
-              title={student.full_name || student.username}
+              title={student.full_name || student.email}
               subtitle={student.email}
               checked={picked.includes(student.id)}
               onToggle={() => toggle(student.id)}

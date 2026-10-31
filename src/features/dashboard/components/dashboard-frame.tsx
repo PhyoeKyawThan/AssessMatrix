@@ -46,7 +46,7 @@ export function DashboardFrame({ title, subtitle, resource, children }: Dashboar
       <AppHeader
         title={title}
         subtitle={subtitle}
-        actions={<Button label="Refresh" variant="secondary" onPress={reload} />}
+        actions={<Button label="Refresh" icon="refresh" variant="secondary" onPress={reload} />}
       />
 
       {error !== null ? <ErrorBanner title="The dashboard could not load" messages={error} /> : null}

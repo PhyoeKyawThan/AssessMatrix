@@ -1,12 +1,13 @@
 import { Redirect } from 'expo-router';
+import { Image } from 'expo-image';
 import { useState } from 'react';
-import { KeyboardAvoidingView, Platform, StyleSheet, Text } from 'react-native';
+import { KeyboardAvoidingView, Platform, StyleSheet, Text, View } from 'react-native';
 
 import { useAuth } from '@/features/auth/auth-context';
 import { HOME_BY_ROLE } from '@/features/auth/routes';
 import { API_URL } from '@/shared/config/env';
 import { ApiError } from '@/shared/api/types';
-import { scale, useResponsive, useTheme } from '@/shared/theme';
+import { elevation, radius, scale, useResponsive, useTheme } from '@/shared/theme';
 import { Button } from '@/shared/ui/button';
 import { ErrorBanner } from '@/shared/ui/error-banner';
 import { Field } from '@/shared/ui/field';
@@ -17,6 +18,8 @@ interface FormError {
   title: string;
   messages: string[];
 }
+
+const CREST = require('@/assets/brand/crest-mark.png');
 
 function describeError(error: unknown): FormError {
   if (error instanceof ApiError) {
@@ -65,30 +68,38 @@ export function SignInScreen() {
     }
   };
 
-  // Phones fill the screen; tablets and desktop windows get a card with its own surface.
+  // Keep one recognisable institutional sign-in surface on every platform. The compact version
+  // loses only the shadow so it still feels native inside a narrow Android viewport.
   const cardStyle = {
-    gap: layout.gap - 4,
-    ...(layout.breakpoint === 'compact'
-      ? undefined
-      : {
-          backgroundColor: colors.surface,
-          borderColor: colors.border,
-          borderWidth: 1,
-          borderRadius: 16,
-          padding: layout.gap,
-        }),
+    gap: layout.gap - 2,
+    backgroundColor: colors.surface,
+    borderColor: colors.border,
+    borderWidth: 1,
+    borderRadius: radius.card,
+    padding: layout.breakpoint === 'compact' ? 20 : 28,
+    ...(layout.breakpoint === 'compact' ? undefined : elevation(colors, true)),
   };
 
   return (
     <Screen scroll width="form">
-      <ThemeToggle />
-
-      <Text style={[styles.title, { color: colors.text, fontSize: scale(28, layout.typeScale) }]}>AssessMatrix</Text>
-      <Text style={[styles.subtitle, { color: colors.textMuted, fontSize: scale(15, layout.typeScale) }]}>
-        Sign in with your university email.
-      </Text>
+      <View style={styles.utility}><ThemeToggle /></View>
 
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={cardStyle}>
+        <View style={[styles.brand, { borderBottomColor: colors.border }]}>
+          <Image source={CREST} style={styles.crest} contentFit="contain" />
+          <View style={styles.brandCopy}>
+            <Text style={[styles.product, { color: colors.text, fontSize: scale(19, layout.typeScale) }]}>AssessMatrix</Text>
+            <Text style={{ color: colors.textMuted, fontSize: scale(12, layout.typeScale) }}>ACADEMIC OPERATIONS</Text>
+          </View>
+        </View>
+
+        <View style={styles.heading}>
+          <Text style={[styles.title, { color: colors.text, fontSize: scale(27, layout.typeScale) }]}>Welcome back</Text>
+          <Text style={[styles.subtitle, { color: colors.textMuted, fontSize: scale(15, layout.typeScale) }]}>
+            Sign in with your university email to continue.
+          </Text>
+        </View>
+
         {error ? <ErrorBanner title={error.title} messages={error.messages} /> : null}
 
         <Field
@@ -115,14 +126,21 @@ export function SignInScreen() {
         <Button label="Sign in" loading={submitting} onPress={submit} />
       </KeyboardAvoidingView>
 
-      <Text style={{ color: colors.textFaint, fontSize: scale(13, layout.typeScale), lineHeight: scale(19, layout.typeScale) }}>
-        The API assigns your role — ADMIN, TEACHER or STUDENT — from the account, so this form does not ask for it.
+      <Text style={[styles.help, { color: colors.textFaint, fontSize: scale(12, layout.typeScale), lineHeight: scale(18, layout.typeScale) }]}>
+        Secure access for authorised administrators, lecturers, and students. Your workspace is selected automatically.
       </Text>
     </Screen>
   );
 }
 
 const styles = StyleSheet.create({
-  title: { fontWeight: '700' },
+  utility: { alignItems: 'flex-end' },
+  brand: { alignItems: 'center', borderBottomWidth: StyleSheet.hairlineWidth, flexDirection: 'row', gap: 12, paddingBottom: 18 },
+  brandCopy: { gap: 1 },
+  crest: { height: 42, width: 42 },
+  product: { fontWeight: '800', letterSpacing: -0.3 },
+  heading: { gap: 5, paddingTop: 4 },
+  title: { fontWeight: '700', letterSpacing: -0.4 },
   subtitle: { marginBottom: 2 },
+  help: { alignSelf: 'center', maxWidth: 480, textAlign: 'center' },
 });

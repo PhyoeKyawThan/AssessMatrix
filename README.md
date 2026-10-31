@@ -92,13 +92,20 @@ Each role home reads one endpoint, `GET /api/dashboard/`, which returns `stats[]
 
 ## Push notifications
 
-`PushNotifications` in `src/features/notifications/push-notifications.tsx` wraps the navigator in `src/app/_layout.tsx`. While a session exists it asks for the notification permission, creates the `assessmatrix-updates` Android channel, gets the Expo push token for the EAS project in `app.json`, and stores it with `POST /api/me/push-token/`. A failed registration stays silent — the app works either way, it is just quiet.
+`PushNotifications` in `src/features/notifications/push-notifications.tsx` wraps the navigator in `src/app/_layout.tsx`. While a session exists it asks for the notification permission, creates the `assessmatrix-updates` Android channel, gets the Expo push token for the EAS project in `app.json`, and stores it with `POST /api/me/push-token/`. The app still works if that fails — it is just quiet — so every early return logs `[push] <reason>` through `report()` instead of swallowing the error. A missing EAS project id, a refused permission and a rejected token are three different problems, and each names itself in the console.
 
 Unregistering is `signOut`'s job, not the provider's: it sends `DELETE /api/me/push-token/` before `clearTokens()`, because that is the last moment the request still has an access token to authenticate with.
 
 Two backend events reach a student: a mark written for them, and an assessment that moves to `OPEN`. The payload carries `{"type": "mark" | "assessment"}`, and the tap handler routes `mark` to `/student/results` and `assessment` to `/student`. `setNotificationHandler` shows the banner and the notification-list entry while the app is in the foreground.
 
-What it needs: a development or EAS build (Expo Go cannot register push tokens), `extra.eas.projectId` in `app.json`, and push credentials on the Expo project. The `expo-notifications` plugin entry carries the Android notification icon, the `#0B6FA8` tint and the default channel id, so those land only after `npx expo prebuild` or an EAS build. Web is skipped — browser push needs a service worker and VAPID keys, so `IS_PUSH_CAPABLE` is false there.
+Android is the real target, and `expo-notifications` needs Firebase there: its native code talks to `FirebaseMessaging.getInstance()`, which only initialises when the app is built with a `google-services.json`. Set it up once:
+
+1. In the Firebase console create a project, add an Android app with package `ucsh.assessmatrix.mm`, and download `google-services.json`.
+2. Put the file at the repo root. `android.googleServicesFile` in `app.json` already points at `./google-services.json`, and prebuild's default Android plugins apply the Google Services Gradle plugin automatically — no extra npm package and no `android/` edits.
+3. Build it: `eas build --profile development --platform android`, then install that APK on the device. Expo Go cannot register push tokens from SDK 53 onward, and a web session never can; `IS_PUSH_CAPABLE` is false there because browser push needs a service worker and VAPID keys. `npx expo run:android` works too and only needs the file on disk, whereas a cloud build uploads just the files your ignore rules allow — and `.gitignore` currently lists `google-services.json`, so either commit it (its values are client-side config, not credentials) or pass it to EAS as a file variable, the type the EAS docs use `google-services.json` as the example for.
+4. Sign in and confirm `POST /api/me/push-token/` appears in the server log, or that `users_user.push_token` is non-empty for that account.
+
+`extra.eas.projectId` in `app.json` and push credentials on the Expo project are also required — `eas credentials` shows both. The `expo-notifications` plugin entry carries the Android notification icon, the `#0B6FA8` tint and the default channel id, so those land only after `npx expo prebuild` or an EAS build. The backend sends through `core/notifications.py`, which needs `EXPO_ACCESS_TOKEN`; without it a delivery is logged as skipped rather than attempted.
 
 ## Authentication
 

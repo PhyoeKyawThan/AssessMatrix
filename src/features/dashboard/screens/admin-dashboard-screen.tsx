@@ -28,7 +28,7 @@ export function AdminDashboardScreen() {
           const modules: PanelItem[] = (data.recent_modules ?? []).map((module) => ({
             key: module.id,
             title: `${module.module_code} — ${module.module_name}`,
-            subtitle: `${module.credit_hours} credit hours · ${module.semester}`,
+            subtitle: `Year ${module.study_year} · ${module.semester}`,
             badge: <Badge label={module.academic_year} tone="neutral" />,
             onPress: () => router.push('/admin/modules'),
           }));

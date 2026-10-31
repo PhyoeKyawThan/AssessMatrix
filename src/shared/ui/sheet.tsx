@@ -1,7 +1,8 @@
 import type { ReactNode } from 'react';
 import { Modal, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 
-import { useResponsive, useTheme } from '@/shared/theme';
+import { elevation, radius, useResponsive, useTheme } from '@/shared/theme';
+import { Icon } from '@/shared/ui/icon';
 import { Title } from '@/shared/ui/text';
 
 interface SheetProps {
@@ -40,8 +41,10 @@ export function Sheet({ title, visible, onDismiss, children }: SheetProps) {
             {
               backgroundColor: colors.surface,
               borderColor: colors.border,
+              borderRadius: radius.card,
               padding: layout.gap,
               gap: layout.gap,
+              ...elevation(colors, true),
             },
           ]}
         >
@@ -54,7 +57,7 @@ export function Sheet({ title, visible, onDismiss, children }: SheetProps) {
               onPress={onDismiss}
               style={[styles.close, { borderColor: colors.border }]}
             >
-              <View style={[styles.closeGlyph, { backgroundColor: colors.textMuted }]} />
+              <Icon name="close" size={18} color={colors.textMuted} />
             </Pressable>
           </View>
           <ScrollView
@@ -72,10 +75,9 @@ export function Sheet({ title, visible, onDismiss, children }: SheetProps) {
 
 const styles = StyleSheet.create({
   backdrop: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 16 },
-  panel: { borderRadius: 20, borderWidth: 1, width: '100%', maxHeight: '92%' },
+  panel: { borderWidth: 1, width: '100%', maxHeight: '92%' },
   panelPhone: { maxWidth: 520 },
   panelTablet: { maxWidth: 620 },
   header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12 },
   close: { borderRadius: 999, borderWidth: 1, width: 40, height: 40, alignItems: 'center', justifyContent: 'center' },
-  closeGlyph: { width: 16, height: 2, borderRadius: 1, transform: [{ rotate: '45deg' }] },
 });

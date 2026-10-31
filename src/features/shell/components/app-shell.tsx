@@ -6,7 +6,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { SIGN_IN_HREF, useAuth } from '@/features/auth';
 import { ROLE_LABELS, type Role } from '@/features/auth/types';
-import { NAV_BY_ROLE, VISIBLE_TABS, type NavItem } from '@/features/shell/nav';
+import { isSectionActive, NAV_BY_ROLE, targetOf, VISIBLE_TABS, type NavItem } from '@/features/shell/nav';
 import { scale, useResponsive, useTheme } from '@/shared/theme';
 import { useSubmit } from '@/shared/api/use-resource';
 import { Button } from '@/shared/ui/button';
@@ -48,15 +48,9 @@ export function AppShell({ role, children }: { role: Role; children: ReactNode }
 function useNav(items: NavItem[]) {
   const pathname = usePathname();
   const router = useRouter();
-  const home = targetOf(items[0]);
-
-  const select = (item: NavItem) => (pathname === home ? pathname === home : pathname.startsWith(targetOf(item)));
+  const select = (item: NavItem) => isSectionActive(pathname, items, item);
   const go = (item: NavItem) => router.push(item.href);
   return { select, go };
-}
-
-function targetOf(item: NavItem): string {
-  return typeof item.href === 'string' ? item.href : item.href.pathname;
 }
 
 function useSignOut() {
@@ -102,10 +96,16 @@ function Sidebar({ items }: { items: NavItem[] }) {
     <View
       style={[
         styles.sidebar,
-        { backgroundColor: colors.sidebar, paddingTop: insets.top + 16, paddingBottom: insets.bottom + 12 },
+        {
+          backgroundColor: colors.sidebar,
+          borderRightColor: colors.sidebarBorder,
+          paddingTop: insets.top + 16,
+          paddingBottom: insets.bottom + 12,
+        },
       ]}
     >
       <Brand compact={false} />
+      <Text style={[styles.navCaption, { color: colors.sidebarText }]}>WORKSPACE</Text>
       <ScrollView bounces={false} contentContainerStyle={styles.navList}>
         {items.map((item) => (
           <NavButton
@@ -132,7 +132,12 @@ function Rail({ items }: { items: NavItem[] }) {
     <View
       style={[
         styles.rail,
-        { backgroundColor: colors.sidebar, paddingTop: insets.top + 12, paddingBottom: insets.bottom + 12 },
+        {
+          backgroundColor: colors.sidebar,
+          borderRightColor: colors.sidebarBorder,
+          paddingTop: insets.top + 12,
+          paddingBottom: insets.bottom + 12,
+        },
       ]}
     >
       <Brand compact />
@@ -376,17 +381,18 @@ function AccountDetails() {
 const styles = StyleSheet.create({
   fill: { flex: 1 },
   row: { flexDirection: 'row' },
-  sidebar: { width: 236, gap: 14 },
-  rail: { width: 76, gap: 12, alignItems: 'center' },
+  sidebar: { width: 252, gap: 14, borderRightWidth: StyleSheet.hairlineWidth },
+  rail: { width: 76, gap: 12, alignItems: 'center', borderRightWidth: StyleSheet.hairlineWidth },
   railList: { gap: 6, alignItems: 'center' },
   railFooter: { alignItems: 'center' },
-  brand: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: 16 },
+  brand: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: 18, paddingBottom: 10 },
   brandRail: { justifyContent: 'center' },
   brandText: { flexShrink: 1, gap: 1 },
   crest: { width: 38, height: 38 },
   crestRail: { width: 34, height: 34 },
-  navList: { gap: 4, paddingHorizontal: 12 },
-  sidebarItem: { flexDirection: 'row', alignItems: 'center', gap: 10, borderRadius: 10, paddingHorizontal: 12, paddingVertical: 10 },
+  navCaption: { fontSize: 10, fontWeight: '800', letterSpacing: 1.2, paddingHorizontal: 22, paddingTop: 4 },
+  navList: { gap: 3, paddingHorizontal: 12 },
+  sidebarItem: { flexDirection: 'row', alignItems: 'center', gap: 11, borderRadius: 7, paddingHorizontal: 12, paddingVertical: 10 },
   railItem: {
     alignItems: 'center',
     justifyContent: 'center',

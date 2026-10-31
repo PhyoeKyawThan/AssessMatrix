@@ -1,6 +1,6 @@
 import { StyleSheet, Text, TextInput, View, type TextInputProps } from 'react-native';
 
-import { scale, useResponsive, useTheme } from '@/shared/theme';
+import { radius, scale, useResponsive, useTheme } from '@/shared/theme';
 
 interface FieldProps extends TextInputProps {
   label: string;
@@ -21,12 +21,13 @@ export function Field({ label, error, ...rest }: FieldProps) {
         style={[
           styles.input,
           {
-            minHeight: layout.breakpoint === 'compact' ? 48 : 52,
+            minHeight: layout.breakpoint === 'compact' ? 46 : 48,
             paddingHorizontal: layout.gap - 4,
-            fontSize: scale(16, layout.typeScale),
+            fontSize: scale(15, layout.typeScale),
             color: colors.text,
             backgroundColor: colors.inputBackground,
             borderColor: error ? colors.errorBorder : colors.inputBorder,
+            borderRadius: radius.input,
           },
         ]}
         placeholderTextColor={colors.placeholder}
@@ -40,9 +41,8 @@ export function Field({ label, error, ...rest }: FieldProps) {
 }
 
 const styles = StyleSheet.create({
-  label: { fontWeight: '500' },
+  label: { fontWeight: '600' },
   input: {
-    borderRadius: 10,
     borderWidth: 1,
   },
 });

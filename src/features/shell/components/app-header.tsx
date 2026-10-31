@@ -2,7 +2,7 @@ import { useRouter } from 'expo-router';
 import type { ReactNode } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
-import { scale, useResponsive, useTheme } from '@/shared/theme';
+import { radius, scale, useResponsive, useTheme } from '@/shared/theme';
 import { ThemeToggle } from '@/shared/ui/theme-toggle';
 
 interface AppHeaderProps {
@@ -21,7 +21,7 @@ export function AppHeader({ title, subtitle, back = false, actions }: AppHeaderP
   const stackedActions = layout.breakpoint === 'compact' && actions !== undefined && actions !== null;
 
   return (
-    <View style={{ gap: layout.gap - 6 }}>
+    <View style={[styles.wrapper, { borderBottomColor: colors.border, gap: layout.gap - 8, paddingBottom: layout.gap - 4 }]}>
       <View style={styles.topRow}>
         <View style={styles.titleBlock}>
           {back ? (
@@ -42,7 +42,8 @@ export function AppHeader({ title, subtitle, back = false, actions }: AppHeaderP
             style={{
               color: colors.text,
               fontWeight: '700',
-              fontSize: scale(layout.breakpoint === 'compact' ? 22 : 26, layout.typeScale),
+              fontSize: scale(layout.breakpoint === 'compact' ? 22 : 25, layout.typeScale),
+              letterSpacing: -0.35,
               flexShrink: 1,
             }}
           >
@@ -62,6 +63,7 @@ export function AppHeader({ title, subtitle, back = false, actions }: AppHeaderP
 }
 
 const styles = StyleSheet.create({
+  wrapper: { borderBottomWidth: StyleSheet.hairlineWidth },
   topRow: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' },
   titleBlock: { flexDirection: 'row', alignItems: 'center', gap: 8, flex: 1, minWidth: 0 },
   actions: { flexDirection: 'row', alignItems: 'center', gap: 10, flexWrap: 'wrap' },
@@ -69,7 +71,7 @@ const styles = StyleSheet.create({
   back: {
     width: 34,
     height: 34,
-    borderRadius: 999,
+    borderRadius: radius.input,
     borderWidth: 1,
     alignItems: 'center',
     justifyContent: 'center',

@@ -3,21 +3,22 @@ import { useState } from 'react';
 import { catalogApi, type Academic } from '@/features/catalog/api';
 import { AppHeader } from '@/features/shell/components/app-header';
 import { FormSheet } from '@/features/shell/components/form-sheet';
-import { ResourceList } from '@/features/shell/components/resource-list';
 import { useEntityForm } from '@/shared/api/use-entity-form';
 import { usePaged } from '@/shared/api/use-page';
 import { isDateOnly } from '@/shared/utils/format';
 import {
   Badge,
+  Body,
   Field,
   FieldRow,
   OptionChips,
   Pager,
   RecordRow,
+  ResponsiveDataView,
   Screen,
+  Sheet,
 } from '@/shared/ui';
 import { Button } from '@/shared/ui/button';
-import { Card } from '@/shared/ui/card';
 
 type CurrentFilter = 'ALL' | 'true' | 'false';
 type Draft = Omit<Academic, 'id'> & { id: string | null };
@@ -26,6 +27,7 @@ const BLANK: Draft = { id: null, academic_year: '', start_date: '', end_date: ''
 
 export function AcademicsScreen() {
   const [filter, setFilter] = useState<CurrentFilter>('ALL');
+  const [filtersOpen, setFiltersOpen] = useState(false);
   const list = usePaged<Academic>(
     (page) => catalogApi.academics.list({ page, is_current: filter === 'ALL' ? undefined : filter }),
     [filter],
@@ -56,10 +58,10 @@ export function AcademicsScreen() {
       <AppHeader
         title="Academic years"
         subtitle="One year is current. Semesters and modules sit inside a year."
-        actions={<Button label="New year" onPress={() => form.open()} />}
+        actions={<><Button label={filter === 'ALL' ? 'Filter' : 'Filter (active)'} variant="secondary" onPress={() => setFiltersOpen(true)} /><Button label="New year" onPress={() => form.open()} /></>}
       />
 
-      <Card title="Filter">
+      <Sheet title="Filter academic years" visible={filtersOpen} onDismiss={() => setFiltersOpen(false)}>
         <OptionChips<CurrentFilter>
           value={filter}
           onChange={(next) => {
@@ -72,16 +74,25 @@ export function AcademicsScreen() {
             { value: 'false', label: 'Past only' },
           ]}
         />
-      </Card>
+        <Button label="Show results" onPress={() => setFiltersOpen(false)} />
+      </Sheet>
 
-      <ResourceList
+      <ResponsiveDataView
         items={list.items}
         loading={list.loading}
         error={list.error}
         emptyMessage="No academic years yet."
         onRetry={list.reload}
         footer={<Pager page={list.page} pageCount={list.pageCount} onChange={list.setPage} disabled={list.loading} />}
-        renderItem={(academic) => (
+        keyExtractor={(academic) => academic.id}
+        onRowPress={(academic) => form.open({ ...academic })}
+        columns={[
+          { key: 'year', label: 'Academic year', minWidth: 160, flex: 1.5, render: (academic) => <Body>{academic.academic_year}</Body> },
+          { key: 'start', label: 'Start date', minWidth: 130, render: (academic) => <Body tone="secondary">{academic.start_date}</Body> },
+          { key: 'end', label: 'End date', minWidth: 130, render: (academic) => <Body tone="secondary">{academic.end_date}</Body> },
+          { key: 'status', label: 'Status', minWidth: 110, render: (academic) => <Badge label={academic.is_current ? 'Current' : 'Archived'} tone={academic.is_current ? 'success' : 'neutral'} /> },
+        ]}
+        renderCard={(academic) => (
           <RecordRow
             title={academic.academic_year}
             subtitle={`${academic.start_date} → ${academic.end_date}`}

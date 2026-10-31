@@ -7,6 +7,26 @@ export interface Stat {
   label: string;
   value: string;
   tone: Tone;
+  /** Secondary line under the value, e.g. the current academic year a count belongs to. */
+  caption?: string | null;
+  /** Movement against the same figure a year back; absent when there is nothing to compare. */
+  delta?: Delta | null;
+}
+
+export interface Delta {
+  value: string;
+  label: string;
+  direction: 'up' | 'down' | 'flat';
+}
+
+/** One dated event from the role's own data — the bell and the dashboard's activity panel share it. */
+export interface Activity {
+  key: string;
+  tone: Tone;
+  label: string;
+  detail: string;
+  at: string | null;
+  href?: string | null;
 }
 
 export interface Slice {
@@ -42,7 +62,7 @@ export interface RecentModule {
   id: string;
   module_code: string;
   module_name: string;
-  credit_hours: number;
+  study_year: number;
   semester: string;
   academic_year: string;
 }
@@ -91,6 +111,8 @@ export interface Dashboard {
   stats: Stat[];
   donut: Donut;
   bars: Bars;
+  activity: Activity[];
+  academic_years?: { id: string; label: string }[];
   recent_modules?: RecentModule[];
   recent_enrollments?: RecentEnrollment[];
   upcoming_assessments?: UpcomingAssessment[];

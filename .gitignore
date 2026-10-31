@@ -44,3 +44,7 @@ example
 
 .env
 *.apk
+
+google-services.json
+
+firebase-debug.log
