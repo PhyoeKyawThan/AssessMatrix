@@ -1,6 +1,6 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
-import { useColorScheme } from 'react-native';
+import { Appearance, Platform, useColorScheme } from 'react-native';
 
 import { applyDocumentTheme } from '@/shared/theme/document-style';
 import { useHydrated } from '@/shared/theme/hydration';
@@ -37,6 +37,12 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     setStoredPreference(next);
     AsyncStorage.setItem(PREFERENCE_KEY, next).catch(() => undefined);
   }, []);
+
+  useEffect(() => {
+    if (Platform.OS !== 'web') {
+      Appearance.setColorScheme(preference === 'system' ? 'auto' : preference);
+    }
+  }, [preference]);
 
   const scheme: ColorScheme = hydrated ? (preference === 'system' ? systemScheme : preference) : 'light';
   const colors = scheme === 'dark' ? darkPalette : lightPalette;

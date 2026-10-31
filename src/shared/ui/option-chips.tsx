@@ -52,11 +52,14 @@ export function OptionChips<T extends string>({ label, options, value, onChange 
               ]}
             >
               <Text
-                style={{
-                  color: selected ? colors.tones.primary.text : colors.textSecondary,
-                  fontWeight: '600',
-                  fontSize: scale(14, layout.typeScale),
-                }}
+                style={[
+                  styles.chipLabel,
+                  {
+                    color: selected ? colors.tones.primary.text : colors.textSecondary,
+                    fontWeight: '600',
+                    fontSize: scale(14, layout.typeScale),
+                  },
+                ]}
               >
                 {option.label}
               </Text>
@@ -70,5 +73,6 @@ export function OptionChips<T extends string>({ label, options, value, onChange 
 
 const styles = StyleSheet.create({
   row: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-  chip: { borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
+  chip: { borderWidth: 1, alignItems: 'center', justifyContent: 'center', flexShrink: 1, maxWidth: '100%' },
+  chipLabel: { flexShrink: 1, textAlign: 'center' },
 });

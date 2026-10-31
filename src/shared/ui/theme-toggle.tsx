@@ -22,7 +22,7 @@ export function ThemeToggle({ variant = 'header' }: ThemeToggleProps) {
   const onDark = variant === 'onDark';
 
   const surface = onDark
-    ? { backgroundColor: colors.brandDeep, borderColor: colors.sidebarBorder }
+    ? { backgroundColor: colors.sidebarActiveBackground, borderColor: colors.sidebarBorder }
     : { backgroundColor: colors.surface, borderColor: colors.border };
 
   if (onDark) {

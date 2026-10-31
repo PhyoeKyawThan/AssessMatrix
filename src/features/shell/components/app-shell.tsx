@@ -79,7 +79,7 @@ function Brand({ compact }: { compact: boolean }) {
             AssessMatrix
           </Text>
           <Text style={{ color: colors.sidebarText, fontSize: scale(11, layout.typeScale) }} numberOfLines={2}>
-            Student performance
+            UCS Hinthada
           </Text>
         </View>
       )}
@@ -288,7 +288,11 @@ function NavButton({
         variant === 'sidebar' && styles.sidebarItem,
         variant === 'rail' && styles.railItem,
         variant === 'row' && styles.rowItem,
-        selected && onSidebar && { backgroundColor: colors.sidebarActiveBackground },
+        selected && onSidebar && {
+          backgroundColor: colors.sidebarActiveBackground,
+          borderLeftColor: colors.accent,
+          borderLeftWidth: 3,
+        },
         selected && variant === 'row' && { borderColor: colors.primary },
         pressed && styles.pressed,
       ]}

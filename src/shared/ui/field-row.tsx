@@ -31,6 +31,6 @@ export function FieldRow({ children }: { children: ReactNode }) {
 }
 
 const styles = StyleSheet.create({
-  row: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'flex-start' },
-  cell: { flexGrow: 1, flexBasis: '45%', minWidth: 220 },
+  row: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'flex-start', width: '100%' },
+  cell: { flexGrow: 1, flexShrink: 1, flexBasis: '45%', minWidth: 220, maxWidth: '100%' },
 });

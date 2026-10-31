@@ -1,7 +1,7 @@
 import { Redirect } from 'expo-router';
 import { Image } from 'expo-image';
 import { useState } from 'react';
-import { KeyboardAvoidingView, Platform, StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
 
 import { useAuth } from '@/features/auth/auth-context';
 import { HOME_BY_ROLE } from '@/features/auth/routes';
@@ -80,8 +80,8 @@ export function SignInScreen() {
   };
 
   return (
-    <Screen scroll width="form">
-      <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={cardStyle}>
+    <Screen scroll width="form" style={styles.screen}>
+      <View style={cardStyle}>
         <View style={[styles.brand, { borderBottomColor: colors.border }]}>
           <Image source={CREST} style={styles.crest} contentFit="contain" />
           <View style={styles.brandCopy}>
@@ -121,7 +121,7 @@ export function SignInScreen() {
         />
 
         <Button label="Sign in" loading={submitting} onPress={submit} />
-      </KeyboardAvoidingView>
+      </View>
 
       <Text style={[styles.help, { color: colors.textFaint, fontSize: scale(12, layout.typeScale), lineHeight: scale(18, layout.typeScale) }]}>
         Secure access for authorised administrators, lecturers, and students. Your workspace is selected automatically.
@@ -131,6 +131,7 @@ export function SignInScreen() {
 }
 
 const styles = StyleSheet.create({
+  screen: { justifyContent: 'center' },
   brand: { alignItems: 'center', borderBottomWidth: StyleSheet.hairlineWidth, flexDirection: 'row', gap: 12, paddingBottom: 18 },
   brandCopy: { gap: 1 },
   crest: { height: 42, width: 42 },

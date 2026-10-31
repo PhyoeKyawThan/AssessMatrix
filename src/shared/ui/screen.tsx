@@ -1,4 +1,4 @@
-import { ScrollView, StyleSheet, View, type ViewProps } from 'react-native';
+import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, View, type ViewProps } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { useResponsive, useTheme } from '@/shared/theme';
@@ -32,19 +32,30 @@ export function Screen({ children, scroll = false, width = 'content', style, ...
 
   return (
     <SafeAreaView style={[styles.safe, { backgroundColor: colors.background }]} edges={['top', 'bottom']}>
-      {scroll ? (
-        <ScrollView contentContainerStyle={styles.scrolling} keyboardShouldPersistTaps="handled">
-          {inner}
-        </ScrollView>
-      ) : (
-        inner
-      )}
+      <KeyboardAvoidingView
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        enabled={Platform.OS !== 'web'}
+        style={styles.keyboard}
+      >
+        {scroll ? (
+          <ScrollView
+            contentContainerStyle={styles.scrolling}
+            keyboardDismissMode={Platform.OS === 'ios' ? 'interactive' : 'on-drag'}
+            keyboardShouldPersistTaps="handled"
+          >
+            {inner}
+          </ScrollView>
+        ) : (
+          inner
+        )}
+      </KeyboardAvoidingView>
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
   safe: { flex: 1 },
+  keyboard: { flex: 1 },
   content: { flexGrow: 1, width: '100%', alignSelf: 'center' },
   scrolling: { flexGrow: 1 },
 });

@@ -64,7 +64,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  label: { fontWeight: '700', letterSpacing: 0.1 },
+  label: { fontWeight: '700', letterSpacing: 0.1, flexShrink: 1, textAlign: 'center' },
   pressed: { opacity: 0.78 },
   dimmed: { opacity: 0.5 },
 });
