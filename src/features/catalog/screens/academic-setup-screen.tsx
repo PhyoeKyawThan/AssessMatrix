@@ -5,7 +5,7 @@ import { setupApi, type AcademicSetupData, type AcademicSetupDraft } from '@/fea
 import { AppHeader } from '@/features/shell/components/app-header';
 import { usePaged } from '@/shared/api/use-page';
 import { useSubmit } from '@/shared/api/use-resource';
-import { Body, Button, Card, CheckRow, DateField, ErrorBanner, Field, OptionChips, RecordRow, Screen, SectionTitle } from '@/shared/ui';
+import { Body, Button, Card, CheckRow, DateField, ErrorBanner, Field, OptionChips, RecordRow, Screen, SectionTitle, Sheet } from '@/shared/ui';
 
 const EMPTY_SETUP: AcademicSetupData = {
   academic: { academic_year: '', start_date: '', end_date: '' },
@@ -27,8 +27,10 @@ const STEPS = [
 export function AcademicSetupScreen() {
   const drafts = usePaged<AcademicSetupDraft>((page) => setupApi.list(page), []);
   const submit = useSubmit();
+  const deleteSubmit = useSubmit();
   const [draft, setDraft] = useState<AcademicSetupDraft | null>(null);
   const [data, setData] = useState<AcademicSetupData>(EMPTY_SETUP);
+  const [pendingDelete, setPendingDelete] = useState<AcademicSetupDraft | null>(null);
 
   const openDraft = (next: AcademicSetupDraft) => {
     setDraft(next);
@@ -73,29 +75,79 @@ export function AcademicSetupScreen() {
     }
   };
 
+  const requestDelete = (target: AcademicSetupDraft) => {
+    deleteSubmit.reset();
+    setPendingDelete(target);
+  };
+
+  const closeDelete = () => {
+    setPendingDelete(null);
+    deleteSubmit.reset();
+  };
+
+  const deleteDraft = async () => {
+    if (!pendingDelete) return;
+    const deletedId = pendingDelete.id;
+    const ok = await deleteSubmit.run(() => setupApi.remove(deletedId));
+    if (!ok) return;
+    if (draft?.id === deletedId) {
+      setDraft(null);
+      setData(EMPTY_SETUP);
+    }
+    setPendingDelete(null);
+    drafts.reload();
+  };
+
+  const deleteConfirmation = (
+    <Sheet title="Delete setup draft?" visible={pendingDelete !== null} onDismiss={closeDelete}>
+      {deleteSubmit.error ? <ErrorBanner title="Could not delete this draft" messages={deleteSubmit.error} /> : null}
+      <Body>
+        {pendingDelete?.name ?? 'This academic setup'} will be permanently deleted.
+      </Body>
+      <Body tone="muted">This removes only the unpublished draft. It does not delete academic data that has already been published.</Body>
+      <View style={{ flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'flex-end', gap: 12 }}>
+        <Button label="Cancel" variant="secondary" disabled={deleteSubmit.pending} onPress={closeDelete} />
+        <Button label="Delete draft" loading={deleteSubmit.pending} onPress={deleteDraft} />
+      </View>
+    </Sheet>
+  );
+
   if (!draft) {
     return (
-      <Screen scroll width="content">
-        <AppHeader
-          title="Academic setup"
-          subtitle="Prepare a complete year privately, move backward or forward at any time, then publish it to the live database in one operation."
-          actions={<Button label="Start setup" loading={submit.pending} onPress={createDraft} />}
-        />
-        {submit.error ? <ErrorBanner title="Could not start setup" messages={submit.error} /> : null}
-        {submit.notice ? <Card><Body>{submit.notice}</Body></Card> : null}
-        <Card title="Setup drafts">
-          <Body tone="muted">Drafts do not affect current academics, semesters, majors, or modules until they are published.</Body>
-          {drafts.items.filter((item) => item.status === 'DRAFT').map((item) => (
-            <RecordRow
-              key={item.id}
-              title={item.name}
-              subtitle={`Step ${item.current_step} of 4 · Last saved ${new Date(item.updated_at).toLocaleDateString()}`}
-              onPress={() => openDraft(item)}
-            />
-          ))}
-          {!drafts.loading && drafts.items.filter((item) => item.status === 'DRAFT').length === 0 ? <Body tone="muted">No unfinished setup drafts.</Body> : null}
-        </Card>
-      </Screen>
+      <>
+        <Screen scroll width="content">
+          <AppHeader
+            title="Academic setup"
+            subtitle="Prepare a complete year privately, move backward or forward at any time, then publish it to the live database in one operation."
+            actions={<Button label="Start setup" loading={submit.pending} onPress={createDraft} />}
+          />
+          {submit.error ? <ErrorBanner title="Could not start setup" messages={submit.error} /> : null}
+          {submit.notice ? <Card><Body>{submit.notice}</Body></Card> : null}
+          <Card title="Setup drafts">
+            <Body tone="muted">Drafts do not affect current academics, semesters, majors, or modules until they are published.</Body>
+            {drafts.items.filter((item) => item.status === 'DRAFT').map((item) => (
+              <RecordRow
+                key={item.id}
+                title={item.name}
+                subtitle={`Step ${item.current_step} of 4 · Last saved ${new Date(item.updated_at).toLocaleDateString()}`}
+                trailing={(
+                  <Button
+                    label="Delete"
+                    variant="secondary"
+                    onPress={(event) => {
+                      event.stopPropagation();
+                      requestDelete(item);
+                    }}
+                  />
+                )}
+                onPress={() => openDraft(item)}
+              />
+            ))}
+            {!drafts.loading && drafts.items.filter((item) => item.status === 'DRAFT').length === 0 ? <Body tone="muted">No unfinished setup drafts.</Body> : null}
+          </Card>
+        </Screen>
+        {deleteConfirmation}
+      </>
     );
   }
 
@@ -108,7 +160,12 @@ export function AcademicSetupScreen() {
       <AppHeader
         title={data.academic?.academic_year || 'New academic setup'}
         subtitle="Nothing becomes live until the final Publish action succeeds."
-        actions={<Button label="Save & exit" variant="secondary" loading={submit.pending} onPress={async () => { if (await saveAtStep(step)) setDraft(null); }} />}
+        actions={(
+          <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 10 }}>
+            <Button label="Delete draft" variant="secondary" disabled={submit.pending} onPress={() => requestDelete(draft)} />
+            <Button label="Save & exit" variant="secondary" loading={submit.pending} onPress={async () => { if (await saveAtStep(step)) setDraft(null); }} />
+          </View>
+        )}
       />
 
       <Card>
@@ -183,6 +240,7 @@ export function AcademicSetupScreen() {
         <Button label="Back" variant="secondary" disabled={step === 1 || submit.pending} onPress={() => saveAtStep(Math.max(1, step - 1))} />
         {step < 4 ? <Button label="Save & continue" loading={submit.pending} onPress={() => saveAtStep(step + 1)} /> : null}
       </View>
+      {deleteConfirmation}
     </Screen>
   );
 }
