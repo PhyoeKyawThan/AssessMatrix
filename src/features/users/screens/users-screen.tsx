@@ -4,7 +4,8 @@ import { View } from 'react-native';
 
 import { ROLE_LABELS, type Role } from '@/features/auth/types';
 import { AppHeader } from '@/features/shell/components/app-header';
-import { usersApi, type User } from '@/features/users/api';
+import { usersApi, type UploadAsset, type User, type UserImportPreview } from '@/features/users/api';
+import { pickUserWorkbook } from '@/features/users/pick-user-workbook';
 import { usePaged } from '@/shared/api/use-page';
 import { useSubmit } from '@/shared/api/use-resource';
 import {
@@ -54,12 +55,43 @@ export function UsersScreen() {
   const [search, setSearch] = useState('');
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [draft, setDraft] = useState<Draft | null>(null);
+  const [importOpen, setImportOpen] = useState(false);
+  const [importAsset, setImportAsset] = useState<UploadAsset | null>(null);
+  const [importPreview, setImportPreview] = useState<UserImportPreview | null>(null);
 
   const list = usePaged<User>(
     (page) => usersApi.list({ page, role: role === 'ALL' ? undefined : role, search: search || undefined, page_size: 20 }),
     [role, search],
   );
   const submit = useSubmit();
+  const importSubmit = useSubmit();
+
+  const chooseWorkbook = async () => {
+    const asset = await pickUserWorkbook();
+    if (asset === null) return;
+    setImportAsset(asset);
+    setImportPreview(null);
+    await importSubmit.run(async () => {
+      const preview = await usersApi.previewImport(asset);
+      setImportPreview(preview);
+    }, 'Workbook checked. Review the summary before importing.');
+  };
+
+  const commitWorkbook = async () => {
+    if (importAsset === null) return;
+    const ok = await importSubmit.run(
+      () => usersApi.commitImport(importAsset),
+      (result) => {
+        const imported = result as { created_count: number; skipped_count: number };
+        return `${imported.created_count} users imported; ${imported.skipped_count} duplicates skipped.`;
+      },
+    );
+    if (ok) {
+      list.reload();
+      setImportPreview(null);
+      setImportAsset(null);
+    }
+  };
 
   const save = async () => {
     if (draft === null) return;
@@ -108,6 +140,7 @@ export function UsersScreen() {
         subtitle="Admin only. Deleting is blocked while a user teaches, enrolls or grades — deactivate instead."
         actions={<>
           <Button label={role !== 'ALL' || search ? 'Filter (active)' : 'Filter'} variant="secondary" onPress={() => setFiltersOpen(true)} />
+          <Button label="Import XLSX" variant="secondary" onPress={() => { importSubmit.reset(); setImportAsset(null); setImportPreview(null); setImportOpen(true); }} />
           <Button
             label="New user"
             onPress={() => {
@@ -129,12 +162,48 @@ export function UsersScreen() {
           options={[
             { value: 'ALL', label: 'All' },
             { value: 'ADMIN', label: ROLE_LABELS.ADMIN },
+            { value: 'STUDENT_AFFAIRS', label: ROLE_LABELS.STUDENT_AFFAIRS },
             { value: 'TEACHER', label: ROLE_LABELS.TEACHER },
             { value: 'STUDENT', label: ROLE_LABELS.STUDENT },
           ]}
         />
         <Field label="Search" value={search} autoCapitalize="none" placeholder="Name, email or username" returnKeyType="search" onChangeText={setSearch} onSubmitEditing={() => list.setPage(1)} />
         <Button label="Show results" onPress={() => { list.setPage(1); setFiltersOpen(false); }} />
+      </Sheet>
+
+      <Sheet title="Import students and teachers" visible={importOpen} onDismiss={() => setImportOpen(false)}>
+        {importSubmit.error ? <ErrorBanner title="Could not read the workbook" messages={importSubmit.error} /> : null}
+        {importSubmit.notice ? <Body tone="success">{importSubmit.notice}</Body> : null}
+        <Body tone="secondary">The first row must contain these columns in order:</Body>
+        <Body>username · email · full_name · role · password</Body>
+        <Body tone="muted">Role accepts STUDENT, TEACHER, or LECTURER. Existing and repeated usernames or emails are never created twice. Maximum 5,000 rows and 5 MB.</Body>
+        <Button label={importAsset ? 'Choose another workbook' : 'Choose XLSX workbook'} variant="secondary" loading={importSubmit.pending && importPreview === null} onPress={chooseWorkbook} />
+        {importAsset ? <Body tone="muted">Selected: {importAsset.name}</Body> : null}
+        {importPreview ? (
+          <View style={{ gap: 12 }}>
+            <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
+              <Badge label={`${importPreview.summary.ready} ready`} tone="success" />
+              <Badge label={`${importPreview.summary.duplicates} duplicates`} tone={importPreview.summary.duplicates ? 'warning' : 'neutral'} />
+              <Badge label={`${importPreview.summary.invalid} invalid`} tone={importPreview.summary.invalid ? 'danger' : 'neutral'} />
+            </View>
+            {importPreview.issues.map((row) => (
+              <RecordRow
+                key={`${row.row_number}-${row.username}-${row.email}`}
+                title={`Row ${row.row_number} · ${row.username || row.email || 'Missing identity'}`}
+                subtitle={row.message}
+                badge={<Badge label={row.status} tone={row.status === 'INVALID' ? 'danger' : 'warning'} />}
+              />
+            ))}
+            {importPreview.issues_truncated ? <Body tone="error">Only the first 200 issues are shown. Correct the workbook and preview it again.</Body> : null}
+            <Button
+              label={`Import ${importPreview.summary.ready} users`}
+              loading={importSubmit.pending}
+              disabled={!importPreview.summary.ready || Boolean(importPreview.summary.invalid)}
+              onPress={commitWorkbook}
+            />
+            {importPreview.summary.invalid ? <Body tone="error">Correct invalid rows before importing. Duplicate rows will simply be skipped.</Body> : null}
+          </View>
+        ) : null}
       </Sheet>
 
       <ResponsiveDataView
@@ -208,6 +277,7 @@ export function UsersScreen() {
               onChange={(nextRole) => setDraft({ ...draft, role: nextRole })}
               options={[
                 { value: 'ADMIN', label: ROLE_LABELS.ADMIN },
+                { value: 'STUDENT_AFFAIRS', label: ROLE_LABELS.STUDENT_AFFAIRS },
                 { value: 'TEACHER', label: ROLE_LABELS.TEACHER },
                 { value: 'STUDENT', label: ROLE_LABELS.STUDENT },
               ]}

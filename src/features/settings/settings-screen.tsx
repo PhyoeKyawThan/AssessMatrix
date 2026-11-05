@@ -9,10 +9,12 @@ import { AppHeader } from '@/features/shell/components/app-header';
 import { useSubmit } from '@/shared/api/use-resource';
 import { useTheme, type ThemePreference } from '@/shared/theme';
 import { Body, Button, Card, ErrorBanner, Field, OptionChips, Screen, Sheet } from '@/shared/ui';
+import { useI18n, type LanguagePreference } from '@/shared/i18n';
 
 export function SettingsScreen() {
   const { user, refreshUser, signOut } = useAuth();
   const { colors, preference, setPreference } = useTheme();
+  const { t, preference: languagePreference, setPreference: setLanguagePreference } = useI18n();
   const [fullName, setFullName] = useState(user?.full_name ?? '');
   const [pushEnabled, setPushEnabledState] = useState(false);
   const [confirmingDelete, setConfirmingDelete] = useState(false);
@@ -51,31 +53,44 @@ export function SettingsScreen() {
 
   return (
     <Screen scroll width="content">
-      <AppHeader title="Settings" subtitle="Manage your profile, appearance, device notifications, and account." />
+      <AppHeader title={t('settings.title')} subtitle={t('settings.subtitle')} />
 
-      <Card title="Profile">
+      <Card title={t('settings.profile')}>
         {profileSubmit.error ? <ErrorBanner title="Could not update profile" messages={profileSubmit.error} /> : null}
         {profileSubmit.notice ? <Body tone="success">{profileSubmit.notice}</Body> : null}
-        <Field label="Full name" value={fullName} onChangeText={setFullName} />
+        <Field label={t('settings.fullName')} value={fullName} onChangeText={setFullName} />
         <Body tone="secondary">{user?.email ?? '—'}</Body>
         <Body tone="muted">{user?.role ?? '—'} account · username {user?.username ?? '—'}</Body>
-        <Button label="Save profile" loading={profileSubmit.pending} disabled={!fullName.trim() || fullName.trim() === user?.full_name} onPress={saveProfile} />
+        <Button label={t('settings.saveProfile')} loading={profileSubmit.pending} disabled={!fullName.trim() || fullName.trim() === user?.full_name} onPress={saveProfile} />
       </Card>
 
-      <Card title="Appearance">
-        <OptionChips<ThemePreference>
-          label="Theme preference"
-          value={preference}
-          onChange={setPreference}
+      <Card title={t('settings.language')}>
+        <OptionChips<LanguagePreference>
+          label={t('settings.languagePreference')}
+          value={languagePreference}
+          onChange={setLanguagePreference}
           options={[
-            { value: 'system', label: 'Use device setting' },
-            { value: 'light', label: 'Light' },
-            { value: 'dark', label: 'Dark' },
+            { value: 'system', label: t('common.system') },
+            { value: 'en', label: t('common.english') },
+            { value: 'my', label: t('common.myanmar') },
           ]}
         />
       </Card>
 
-      <Card title="Push notifications">
+      <Card title={t('settings.appearance')}>
+        <OptionChips<ThemePreference>
+          label={t('settings.theme')}
+          value={preference}
+          onChange={setPreference}
+          options={[
+            { value: 'system', label: t('common.system') },
+            { value: 'light', label: t('settings.light') },
+            { value: 'dark', label: t('settings.dark') },
+          ]}
+        />
+      </Card>
+
+      <Card title={t('settings.push')}>
         {pushSubmit.error ? <ErrorBanner title="Could not change push preference" messages={pushSubmit.error} /> : null}
         {pushSubmit.notice ? <Body tone="success">{pushSubmit.notice}</Body> : null}
         {Platform.OS === 'web' ? (
@@ -83,8 +98,8 @@ export function SettingsScreen() {
         ) : (
           <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 20 }}>
             <View style={{ flex: 1, gap: 3 }}>
-              <Body>This device</Body>
-              <Body tone="muted">{pushEnabled ? 'Push alerts are enabled' : 'Push alerts are disabled'}</Body>
+              <Body>{t('settings.device')}</Body>
+              <Body tone="muted">{pushEnabled ? t('settings.pushOn') : t('settings.pushOff')}</Body>
             </View>
             <Switch
               accessibilityLabel="Push notifications on this device"
@@ -99,16 +114,16 @@ export function SettingsScreen() {
         <Body tone="muted">Turning this off removes this device token. Announcements remain available in the app inbox.</Body>
       </Card>
 
-      <Card title="Delete account">
+      <Card title={t('settings.delete')}>
         <Body tone="muted">This permanently disables sign-in and anonymizes your identity. Assessment and audit records remain intact.</Body>
-        <Button label="Delete my account" variant="secondary" onPress={() => { setConfirmation(''); deleteSubmit.reset(); setConfirmingDelete(true); }} />
+        <Button label={t('settings.deleteMine')} variant="secondary" onPress={() => { setConfirmation(''); deleteSubmit.reset(); setConfirmingDelete(true); }} />
       </Card>
 
-      <Sheet title="Confirm account deletion" visible={confirmingDelete} onDismiss={() => setConfirmingDelete(false)}>
+      <Sheet title={t('settings.confirmDelete')} visible={confirmingDelete} onDismiss={() => setConfirmingDelete(false)}>
         {deleteSubmit.error ? <ErrorBanner title="Could not delete account" messages={deleteSubmit.error} /> : null}
-        <Body>This cannot be undone. Type DELETE to confirm.</Body>
-        <Field label="Confirmation" value={confirmation} autoCapitalize="characters" onChangeText={setConfirmation} />
-        <Button label="Permanently delete account" loading={deleteSubmit.pending} disabled={confirmation !== 'DELETE'} onPress={deleteAccount} />
+        <Body>{t('settings.typeDelete')}</Body>
+        <Field label={t('settings.confirmation')} value={confirmation} autoCapitalize="characters" onChangeText={setConfirmation} />
+        <Button label={t('settings.deletePermanent')} loading={deleteSubmit.pending} disabled={confirmation !== 'DELETE'} onPress={deleteAccount} />
       </Sheet>
     </Screen>
   );

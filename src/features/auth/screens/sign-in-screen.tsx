@@ -12,6 +12,7 @@ import { Button } from '@/shared/ui/button';
 import { ErrorBanner } from '@/shared/ui/error-banner';
 import { Field } from '@/shared/ui/field';
 import { Screen } from '@/shared/ui/screen';
+import { useI18n } from '@/shared/i18n';
 
 interface FormError {
   title: string;
@@ -40,6 +41,7 @@ export function SignInScreen() {
   const { status, user, signIn } = useAuth();
   const { colors } = useTheme();
   const layout = useResponsive();
+  const { t } = useI18n();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [submitting, setSubmitting] = useState(false);
@@ -52,7 +54,7 @@ export function SignInScreen() {
   const submit = async () => {
     const trimmed = email.trim();
     if (trimmed === '' || password === '') {
-      setError({ title: 'Enter both email and password.', messages: [] });
+      setError({ title: t('auth.required'), messages: [] });
       return;
     }
 
@@ -91,16 +93,16 @@ export function SignInScreen() {
         </View>
 
         <View style={styles.heading}>
-          <Text style={[styles.title, { color: colors.text, fontSize: scale(27, layout.typeScale) }]}>Welcome back</Text>
+          <Text style={[styles.title, { color: colors.text, fontSize: scale(27, layout.typeScale) }]}>{t('auth.welcome')}</Text>
           <Text style={[styles.subtitle, { color: colors.textMuted, fontSize: scale(15, layout.typeScale) }]}>
-            Sign in with your university email to continue.
+            {t('auth.subtitle')}
           </Text>
         </View>
 
         {error ? <ErrorBanner title={error.title} messages={error.messages} /> : null}
 
         <Field
-          label="Email"
+          label={t('auth.email')}
           autoCapitalize="none"
           autoComplete="email"
           keyboardType="email-address"
@@ -110,7 +112,7 @@ export function SignInScreen() {
           onChangeText={setEmail}
         />
         <Field
-          label="Password"
+          label={t('auth.password')}
           autoComplete="password"
           placeholder="••••••••"
           secureTextEntry
@@ -120,11 +122,11 @@ export function SignInScreen() {
           onSubmitEditing={submit}
         />
 
-        <Button label="Sign in" loading={submitting} onPress={submit} />
+        <Button label={t('auth.signIn')} loading={submitting} onPress={submit} />
       </View>
 
       <Text style={[styles.help, { color: colors.textFaint, fontSize: scale(12, layout.typeScale), lineHeight: scale(18, layout.typeScale) }]}>
-        Secure access for authorised administrators, lecturers, and students. Your workspace is selected automatically.
+        {t('auth.help')}
       </Text>
     </Screen>
   );

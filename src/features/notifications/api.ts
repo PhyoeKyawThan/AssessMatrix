@@ -53,7 +53,7 @@ export const notificationsApi = {
     body: string;
     requires_acknowledgement: boolean;
     recipient_ids?: string[];
-    target_role?: 'ALL' | 'TEACHER' | 'STUDENT';
+    target_role?: 'ALL' | 'STUDENT_AFFAIRS' | 'TEACHER' | 'STUDENT';
     module_id?: string;
   }) => apiRequest<SentNotification>('/api/notifications/', { method: 'POST', body }),
   markRead: (id: string) => apiRequest<InboxNotification>(`/api/notifications/${id}/mark-read/`, { method: 'POST', body: {} }),

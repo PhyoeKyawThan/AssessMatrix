@@ -84,3 +84,21 @@ export async function apiRequest<T>(path: string, options: RequestOptions = {}):
   if (response.status === 204) return undefined as T;
   return (await response.json()) as T;
 }
+
+/** Multipart request used for native/web file uploads; fetch supplies the boundary header. */
+export async function apiUpload<T>(path: string, body: FormData): Promise<T> {
+  const send = async (access: string | null): Promise<Response> => {
+    const headers: Record<string, string> = { ...BASE_HEADERS };
+    if (access !== null) headers.Authorization = `Bearer ${access}`;
+    return fetch(`${API_URL}${path}`, { method: 'POST', headers, body });
+  };
+
+  const stored = (await loadTokens())?.access ?? null;
+  let response = await send(stored);
+  if (response.status === 401 && stored !== null) {
+    const refreshed = await refreshOnce();
+    if (refreshed !== null) response = await send(refreshed);
+  }
+  if (!response.ok) throw await toApiError(response);
+  return (await response.json()) as T;
+}

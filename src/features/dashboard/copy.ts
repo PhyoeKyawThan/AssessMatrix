@@ -8,6 +8,7 @@ interface RoleCopy {
 
 export const ROLE_COPY: Record<Role, RoleCopy> = {
   ADMIN: { title: 'Administration', summary: 'Manage users, the academic catalog and lecture plans.' },
+  STUDENT_AFFAIRS: { title: 'Student Affairs', summary: 'Review, verify, and publish official period results.' },
   TEACHER: { title: 'Teaching', summary: 'Own lecture plans, assessments and marks.' },
   STUDENT: { title: 'My studies', summary: 'See the modules you are enrolled in and your marks.' },
 };

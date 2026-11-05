@@ -47,7 +47,16 @@
       ],
       "expo-secure-store",
       "expo-web-browser",
-      "expo-image"
+      "expo-image",
+      [
+        "expo-localization",
+        {
+          "supportedLocales": {
+            "ios": ["en", "my"],
+            "android": ["en", "my"]
+          }
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true,

@@ -15,17 +15,23 @@ export interface NavItem {
 export const NAV_BY_ROLE: Record<Role, NavItem[]> = {
   ADMIN: [
     { href: '/admin', label: 'Dashboard', tabLabel: 'Home', icon: 'grid' },
-    { href: '/admin/setup', label: 'Academic setup', tabLabel: 'Setup', icon: 'calendar' },
     { href: '/admin/users', label: 'Users', tabLabel: 'Users', icon: 'users' },
     { href: '/admin/cohorts', label: 'Student cohorts', tabLabel: 'Cohorts', icon: 'userPlus' },
-    { href: '/admin/academics', label: 'Academic years', tabLabel: 'Years', icon: 'calendar' },
-    { href: '/admin/semesters', label: 'Semesters', tabLabel: 'Terms', icon: 'clock' },
+    { href: '/admin/periods' as Href, label: 'Teaching periods', tabLabel: 'Periods', icon: 'calendar' },
     { href: '/admin/majors', label: 'Majors', tabLabel: 'Majors', icon: 'layers' },
+    { href: '/admin/curricula' as Href, label: 'Curriculum', tabLabel: 'Curriculum', icon: 'layers' },
     { href: '/admin/modules', label: 'Modules', tabLabel: 'Modules', icon: 'book' },
     { href: '/admin/plans', label: 'Module assignments', tabLabel: 'Assign', icon: 'document' },
     { href: '/admin/enrollments', label: 'Enrollments', tabLabel: 'Enrols', icon: 'clipboard' },
+    { href: '/admin/results' as Href, label: 'Result review', tabLabel: 'Review', icon: 'checklist' },
     { href: '/admin/notifications', label: 'Notifications', tabLabel: 'Inbox', icon: 'bell' },
     { href: '/admin/settings', label: 'Settings', tabLabel: 'Settings', icon: 'settings' },
+  ],
+  STUDENT_AFFAIRS: [
+    { href: '/student-affairs' as Href, label: 'Dashboard', tabLabel: 'Home', icon: 'grid' },
+    { href: '/student-affairs/results' as Href, label: 'Result review', tabLabel: 'Review', icon: 'checklist' },
+    { href: '/student-affairs/notifications' as Href, label: 'Notifications', tabLabel: 'Inbox', icon: 'bell' },
+    { href: '/student-affairs/settings' as Href, label: 'Settings', tabLabel: 'Settings', icon: 'settings' },
   ],
   TEACHER: [
     { href: '/teacher', label: 'Dashboard', tabLabel: 'Home', icon: 'grid' },

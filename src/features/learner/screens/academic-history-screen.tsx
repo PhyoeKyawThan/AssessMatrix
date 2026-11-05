@@ -35,7 +35,11 @@ export function AcademicHistoryScreen({ studentId, embedded = false }: { student
                   <Card
                     key={module.enrollment_id}
                     title={`${module.module_code} — ${module.module_name} · Year ${module.study_year}`}
-                    actions={<Badge label={`${module.obtained_total} / ${module.maximum_total}`} tone="info" />}
+                    actions={module.official_raw_mark !== null ? (
+                      <Badge label={`Official raw mark: ${module.official_raw_mark}`} tone="success" />
+                    ) : (
+                      <Badge label="Awaiting publication" tone="neutral" />
+                    )}
                   >
                     <Body tone="muted">{module.teacher ? `Teacher: ${module.teacher}` : 'Teacher not assigned'} · {module.status}</Body>
                     <ResponsiveDataView

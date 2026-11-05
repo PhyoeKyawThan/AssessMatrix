@@ -7,6 +7,7 @@ export const SIGN_IN_HREF: Href = '/sign-in';
 /** The API decides the role from the account, so each role lands on its own route group. */
 export const HOME_BY_ROLE: Record<Role, Href> = {
   ADMIN: '/admin',
+  STUDENT_AFFAIRS: '/student-affairs' as Href,
   TEACHER: '/teacher',
   STUDENT: '/student',
 };

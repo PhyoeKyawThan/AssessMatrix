@@ -48,3 +48,6 @@ example
 google-services.json
 assessmatrix-bac75-firebase-adminsdk-fbsvc-1912272aa9.json
 firebase-debug.log
+
+# Local university records used for design verification; contains personal student data.
+assessment_datas/

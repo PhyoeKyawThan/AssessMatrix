@@ -1,5 +1,5 @@
-import {ResultsScreen} from '@/features/marking/screens/results-screen';
+import { PeriodResultsScreen } from '@/features/marking/screens/period-results-screen';
 
 export default function TeacherResultsRoute() {
-  return <ResultsScreen />;
+  return <PeriodResultsScreen />;
 }

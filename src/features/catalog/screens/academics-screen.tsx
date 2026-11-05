@@ -1,78 +1,75 @@
 import { useState } from 'react';
 
-import { catalogApi, type Academic } from '@/features/catalog/api';
+import { catalogApi, type TeachingPeriod, type TeachingPeriodStatus } from '@/features/catalog/api';
 import { AppHeader } from '@/features/shell/components/app-header';
 import { FormSheet } from '@/features/shell/components/form-sheet';
 import { useEntityForm } from '@/shared/api/use-entity-form';
 import { usePaged } from '@/shared/api/use-page';
 import { isDateOnly } from '@/shared/utils/format';
 import {
-  Badge,
-  Body,
-  DateField,
-  Field,
-  FieldRow,
-  OptionChips,
-  Pager,
-  RecordRow,
-  ResponsiveDataView,
-  Screen,
-  Sheet,
+  Badge, Body, Button, DateField, Field, FieldRow, OptionChips, Pager,
+  RecordRow, ResponsiveDataView, Screen, Sheet,
 } from '@/shared/ui';
-import { Button } from '@/shared/ui/button';
 
-type CurrentFilter = 'ALL' | 'true' | 'false';
-type Draft = Omit<Academic, 'id'> & { id: string | null };
+type StatusFilter = 'ALL' | TeachingPeriodStatus;
+type Draft = Omit<TeachingPeriod, 'id'> & { id: string | null };
 
-const BLANK: Draft = { id: null, academic_year: '', start_date: '', end_date: '', is_current: false };
+const BLANK: Draft = {
+  id: null, academic_label: '', period_number: 1, name: 'First teaching period',
+  start_date: '', end_date: '', status: 'DRAFT',
+};
+
+const statusTone = (status: TeachingPeriodStatus) => (
+  status === 'ACTIVE' ? 'success' : status === 'DRAFT' ? 'info' : 'neutral'
+);
 
 export function AcademicsScreen() {
-  const [filter, setFilter] = useState<CurrentFilter>('ALL');
+  const [filter, setFilter] = useState<StatusFilter>('ALL');
   const [filtersOpen, setFiltersOpen] = useState(false);
-  const list = usePaged<Academic>(
-    (page) => catalogApi.academics.list({ page, is_current: filter === 'ALL' ? undefined : filter }),
+  const list = usePaged<TeachingPeriod>(
+    (page) => catalogApi.teachingPeriods.list({
+      page, page_size: 100, status: filter === 'ALL' ? undefined : filter,
+    }),
     [filter],
   );
 
   const form = useEntityForm<Draft>({
     blank: BLANK,
     validate: (draft) => ({
-      academic_year: draft.academic_year.trim() === '' ? 'Required, for example 2026-2027.' : null,
-      start_date: isDateOnly(draft.start_date) ? null : 'Use YYYY-MM-DD.',
-      end_date: isDateOnly(draft.end_date) ? null : 'Use YYYY-MM-DD.',
+      academic_label: draft.academic_label.trim() ? null : 'Required, for example 2026–2027.',
+      name: draft.name.trim() ? null : 'Required.',
+      start_date: isDateOnly(draft.start_date) ? null : 'Choose a start date.',
+      end_date: isDateOnly(draft.end_date) ? null : 'Choose an end date.',
     }),
-    save: (draft) => {
-      const body = {
-        academic_year: draft.academic_year,
-        start_date: draft.start_date,
-        end_date: draft.end_date,
-        is_current: draft.is_current,
-      };
-      return draft.id === null ? catalogApi.academics.create(body) : catalogApi.academics.update(draft.id, body);
-    },
-    remove: (id) => catalogApi.academics.remove(id),
-    onSaved: () => list.reload(),
+    save: ({ id, ...body }) => (
+      id === null ? catalogApi.teachingPeriods.create(body) : catalogApi.teachingPeriods.update(id, body)
+    ),
+    remove: catalogApi.teachingPeriods.remove,
+    onSaved: list.reload,
   });
 
   return (
     <Screen scroll width="content">
       <AppHeader
-        title="Academic years"
-        subtitle="One year is current. Semesters and modules sit inside a year."
-        actions={<><Button label={filter === 'ALL' ? 'Filter' : 'Filter (active)'} variant="secondary" onPress={() => setFiltersOpen(true)} /><Button label="New year" onPress={() => form.open()} /></>}
+        title="Teaching periods"
+        subtitle="Schedule dated periods here. Fixed Semester 1–10 structures and their modules are managed in Curriculum."
+        actions={(
+          <>
+            <Button label={filter === 'ALL' ? 'Filter' : 'Filter (active)'} variant="secondary" onPress={() => setFiltersOpen(true)} />
+            <Button label="New teaching period" onPress={() => form.open()} />
+          </>
+        )}
       />
 
-      <Sheet title="Filter academic years" visible={filtersOpen} onDismiss={() => setFiltersOpen(false)}>
-        <OptionChips<CurrentFilter>
+      <Sheet title="Filter teaching periods" visible={filtersOpen} onDismiss={() => setFiltersOpen(false)}>
+        <OptionChips<StatusFilter>
+          label="Status"
           value={filter}
-          onChange={(next) => {
-            setFilter(next);
-            list.setPage(1);
-          }}
+          onChange={(value) => { setFilter(value); list.setPage(1); }}
           options={[
-            { value: 'ALL', label: 'All years' },
-            { value: 'true', label: 'Current only' },
-            { value: 'false', label: 'Past only' },
+            { value: 'ALL', label: 'All' }, { value: 'DRAFT', label: 'Draft' },
+            { value: 'ACTIVE', label: 'Active' }, { value: 'CLOSED', label: 'Closed' },
+            { value: 'ARCHIVED', label: 'Archived' },
           ]}
         />
         <Button label="Show results" onPress={() => setFiltersOpen(false)} />
@@ -82,63 +79,59 @@ export function AcademicsScreen() {
         items={list.items}
         loading={list.loading}
         error={list.error}
-        emptyMessage="No academic years yet."
+        emptyMessage="No teaching periods yet."
         onRetry={list.reload}
         footer={<Pager page={list.page} pageCount={list.pageCount} onChange={list.setPage} disabled={list.loading} />}
-        keyExtractor={(academic) => academic.id}
-        onRowPress={(academic) => form.open({ ...academic })}
+        keyExtractor={(period) => period.id}
+        onRowPress={(period) => form.open({ ...period })}
         columns={[
-          { key: 'year', label: 'Academic year', minWidth: 160, flex: 1.5, render: (academic) => <Body>{academic.academic_year}</Body> },
-          { key: 'start', label: 'Start date', minWidth: 130, render: (academic) => <Body tone="secondary">{academic.start_date}</Body> },
-          { key: 'end', label: 'End date', minWidth: 130, render: (academic) => <Body tone="secondary">{academic.end_date}</Body> },
-          { key: 'status', label: 'Status', minWidth: 110, render: (academic) => <Badge label={academic.is_current ? 'Current' : 'Archived'} tone={academic.is_current ? 'success' : 'neutral'} /> },
+          { key: 'label', label: 'Academic label', minWidth: 140, render: (period) => <Body>{period.academic_label}</Body> },
+          { key: 'period', label: 'Teaching period', minWidth: 210, flex: 1.4, render: (period) => <Body>{period.name}</Body> },
+          { key: 'dates', label: 'Dates', minWidth: 220, render: (period) => <Body tone="secondary">{period.start_date} → {period.end_date}</Body> },
+          { key: 'status', label: 'Status', minWidth: 100, render: (period) => <Badge label={period.status} tone={statusTone(period.status)} /> },
         ]}
-        renderCard={(academic) => (
+        renderCard={(period) => (
           <RecordRow
-            title={academic.academic_year}
-            subtitle={`${academic.start_date} → ${academic.end_date}`}
-            badge={<Badge label={academic.is_current ? 'Current' : 'Archived'} tone={academic.is_current ? 'success' : 'neutral'} />}
-            onPress={() => form.open({ ...academic })}
+            title={`${period.academic_label} · ${period.name}`}
+            subtitle={`${period.start_date} → ${period.end_date}`}
+            badge={<Badge label={period.status} tone={statusTone(period.status)} />}
+            onPress={() => form.open({ ...period })}
           />
         )}
       />
 
       <FormSheet
-        title={form.draft?.id === null || form.draft === undefined ? 'New academic year' : 'Edit academic year'}
+        title={form.draft?.id ? 'Edit teaching period' : 'New teaching period'}
         form={form}
-        hint="Making a year current clears the previous one. Delete needs no semesters or grade bands."
+        hint="The academic label groups reports only. Multiple teaching periods may be active during a transition."
+        deleteConfirmation={form.draft?.id && form.draft.status === 'DRAFT' ? {
+          value: form.draft.name, description: 'Delete this draft teaching period?',
+        } : undefined}
       >
         {(draft, update) => (
           <>
-            <Field
-              label="Academic year"
-              value={draft.academic_year}
-              placeholder="2026-2027"
-              error={form.problems.academic_year}
-              onChangeText={(academic_year) => update({ academic_year })}
+            <Field label="Academic label" placeholder="2026–2027" value={draft.academic_label} error={form.problems.academic_label} onChangeText={(academic_label) => update({ academic_label })} />
+            <OptionChips<'1' | '2'>
+              label="Period in the academic label"
+              value={String(draft.period_number) as '1' | '2'}
+              onChange={(value) => update({
+                period_number: Number(value) as 1 | 2,
+                name: value === '1' ? 'First teaching period' : 'Second teaching period',
+              })}
+              options={[{ value: '1', label: 'Period 1' }, { value: '2', label: 'Period 2' }]}
             />
+            <Field label="Display name" value={draft.name} error={form.problems.name} onChangeText={(name) => update({ name })} />
             <FieldRow>
-              <DateField
-                label="Start date"
-                value={draft.start_date}
-                error={form.problems.start_date}
-                onChange={(start_date) => update({ start_date })}
-              />
-              <DateField
-                label="End date"
-                value={draft.end_date}
-                minimumDate={draft.start_date || undefined}
-                error={form.problems.end_date}
-                onChange={(end_date) => update({ end_date })}
-              />
+              <DateField label="Start date" value={draft.start_date} error={form.problems.start_date} onChange={(start_date) => update({ start_date })} />
+              <DateField label="End date" value={draft.end_date} minimumDate={draft.start_date || undefined} error={form.problems.end_date} onChange={(end_date) => update({ end_date })} />
             </FieldRow>
-            <OptionChips<'true' | 'false'>
-              label="Currency"
-              value={draft.is_current ? 'true' : 'false'}
-              onChange={(next) => update({ is_current: next === 'true' })}
+            <OptionChips<TeachingPeriodStatus>
+              label="Status"
+              value={draft.status}
+              onChange={(status) => update({ status })}
               options={[
-                { value: 'true', label: 'Current' },
-                { value: 'false', label: 'Not current' },
+                { value: 'DRAFT', label: 'Draft' }, { value: 'ACTIVE', label: 'Active' },
+                { value: 'CLOSED', label: 'Closed' }, { value: 'ARCHIVED', label: 'Archived' },
               ]}
             />
           </>

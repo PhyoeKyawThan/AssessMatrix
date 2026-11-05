@@ -16,7 +16,8 @@ type TeacherTarget = 'MODULE' | 'INDIVIDUAL';
 
 export function NotificationsScreen() {
   const { user } = useAuth();
-  const canSend = user?.role === 'ADMIN' || user?.role === 'TEACHER';
+  const governanceRole = user?.role === 'ADMIN' || user?.role === 'STUDENT_AFFAIRS';
+  const canSend = governanceRole || user?.role === 'TEACHER';
   const [box, setBox] = useState<Box>('INBOX');
   const [composeOpen, setComposeOpen] = useState(false);
   const [title, setTitle] = useState('');
@@ -24,7 +25,7 @@ export function NotificationsScreen() {
   const [requiresAck, setRequiresAck] = useState(false);
   const [adminTarget, setAdminTarget] = useState<AdminTarget>('ROLE');
   const [teacherTarget, setTeacherTarget] = useState<TeacherTarget>('MODULE');
-  const [targetRole, setTargetRole] = useState<'ALL' | 'TEACHER' | 'STUDENT'>('STUDENT');
+  const [targetRole, setTargetRole] = useState<'ALL' | 'STUDENT_AFFAIRS' | 'TEACHER' | 'STUDENT'>('STUDENT');
   const [moduleId, setModuleId] = useState('');
   const [recipientIds, setRecipientIds] = useState<string[]>([]);
   const submit = useSubmit();
@@ -50,7 +51,7 @@ export function NotificationsScreen() {
   };
 
   const send = async () => {
-    const target = user?.role === 'ADMIN'
+    const target = governanceRole
       ? adminTarget === 'ROLE' ? { target_role: targetRole } : { recipient_ids: recipientIds }
       : teacherTarget === 'MODULE' ? { module_id: selectedModule } : { recipient_ids: recipientIds };
     const ok = await submit.run(
@@ -137,20 +138,20 @@ export function NotificationsScreen() {
         <Field label="Title" value={title} placeholder="Important announcement" onChangeText={setTitle} />
         <Field label="Message" value={body} multiline numberOfLines={4} placeholder="Write a clear message for recipients." onChangeText={setBody} />
         <OptionChips<'YES' | 'NO'> label="Acknowledgement" value={requiresAck ? 'YES' : 'NO'} onChange={(value) => setRequiresAck(value === 'YES')} options={[{ value: 'NO', label: 'Not required' }, { value: 'YES', label: 'Require acknowledgement' }]} />
-        {user?.role === 'ADMIN' ? (
+        {governanceRole ? (
           <OptionChips<AdminTarget> label="Target" value={adminTarget} onChange={setAdminTarget} options={[{ value: 'ROLE', label: 'Role or everyone' }, { value: 'INDIVIDUAL', label: 'Selected users' }]} />
         ) : (
           <OptionChips<TeacherTarget> label="Target" value={teacherTarget} onChange={setTeacherTarget} options={[{ value: 'MODULE', label: 'Module class' }, { value: 'INDIVIDUAL', label: 'Selected students' }]} />
         )}
-        {user?.role === 'ADMIN' && adminTarget === 'ROLE' ? <OptionChips label="Recipients" value={targetRole} onChange={setTargetRole} options={[{ value: 'ALL', label: 'All active users' }, { value: 'TEACHER', label: 'Teachers' }, { value: 'STUDENT', label: 'Students' }]} /> : null}
+        {governanceRole && adminTarget === 'ROLE' ? <OptionChips label="Recipients" value={targetRole} onChange={setTargetRole} options={[{ value: 'ALL', label: 'All active users' }, { value: 'STUDENT_AFFAIRS', label: 'Student Affairs' }, { value: 'TEACHER', label: 'Teachers' }, { value: 'STUDENT', label: 'Students' }]} /> : null}
         {user?.role === 'TEACHER' && teacherTarget === 'MODULE' ? <Picker label="Module" loading={plans.loading} options={moduleOptions} value={selectedModule} onChange={setModuleId} /> : null}
-        {(user?.role === 'ADMIN' ? adminTarget === 'INDIVIDUAL' : teacherTarget === 'INDIVIDUAL') ? (
+        {(governanceRole ? adminTarget === 'INDIVIDUAL' : teacherTarget === 'INDIVIDUAL') ? (
           <View style={{ gap: 8 }}>
             <Body tone="secondary">Select recipients</Body>
             {eligible.data?.map((recipient) => <CheckRow key={recipient.id} title={recipient.full_name || recipient.email} subtitle={`${recipient.role} · ${recipient.email}`} checked={recipientIds.includes(recipient.id)} onToggle={() => setRecipientIds((current) => current.includes(recipient.id) ? current.filter((id) => id !== recipient.id) : [...current, recipient.id])} />)}
           </View>
         ) : null}
-        <Button label="Save and send" loading={submit.pending} disabled={!title.trim() || !body.trim() || ((user?.role === 'ADMIN' ? adminTarget === 'INDIVIDUAL' : teacherTarget === 'INDIVIDUAL') && recipientIds.length === 0) || (user?.role === 'TEACHER' && teacherTarget === 'MODULE' && !selectedModule)} onPress={send} />
+        <Button label="Save and send" loading={submit.pending} disabled={!title.trim() || !body.trim() || ((governanceRole ? adminTarget === 'INDIVIDUAL' : teacherTarget === 'INDIVIDUAL') && recipientIds.length === 0) || (user?.role === 'TEACHER' && teacherTarget === 'MODULE' && !selectedModule)} onPress={send} />
       </Sheet>
     </Screen>
   );

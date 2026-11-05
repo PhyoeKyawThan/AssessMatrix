@@ -3,7 +3,7 @@ import { useState } from 'react';
 import { View } from 'react-native';
 
 import { useAuth } from '@/features/auth';
-import { catalogApi, type Academic, type Module } from '@/features/catalog/api';
+import { catalogApi, type Module, type TeachingPeriod } from '@/features/catalog/api';
 import { AppHeader } from '@/features/shell/components/app-header';
 import { FormSheet } from '@/features/shell/components/form-sheet';
 import { usersApi, type User } from '@/features/users/api';
@@ -37,23 +37,23 @@ export function PlansScreen({ scope, readOnly = false }: PlansScreenProps) {
   const { user } = useAuth();
   const role = user?.role ?? 'STUDENT';
   const [status, setStatus] = useState<'ALL' | PlanStatus>('ALL');
-  const [pickedAcademic, setPickedAcademic] = useState<string | null>(null);
+  const [pickedPeriod, setPickedPeriod] = useState<string | null>(null);
   const [filtersOpen, setFiltersOpen] = useState(false);
 
-  const academics = usePaged<Academic>((page) => catalogApi.academics.list({ page, page_size: 100 }), []);
-  const academicId = pickedAcademic ?? academics.items[0]?.id ?? '';
-  const academicOptions = academics.items.map((item) => ({ value: item.id, label: item.academic_year }));
+  const periods = usePaged<TeachingPeriod>((page) => catalogApi.teachingPeriods.list({ page, page_size: 100 }), []);
+  const periodId = pickedPeriod ?? periods.items.find((item) => item.status === 'ACTIVE')?.id ?? periods.items[0]?.id ?? '';
+  const periodOptions = periods.items.map((item) => ({ value: item.id, label: `${item.academic_label} · ${item.name}` }));
 
   const list = usePaged<LecturePlan>(
     (page) => {
       const params = {
         page,
         status: status === 'ALL' ? undefined : status,
-        academic_id: academicId || undefined,
+        semester_id: periodId || undefined,
       };
       return scope === 'mine' ? teachingApi.plans.mine(params) : teachingApi.plans.list(params);
     },
-    [status, academicId, scope],
+    [status, periodId, scope],
   );
 
   const basePath = role === 'ADMIN' ? '/admin/plans' : role === 'TEACHER' ? '/teacher/plans' : '/student/plans';
@@ -64,9 +64,9 @@ export function PlansScreen({ scope, readOnly = false }: PlansScreenProps) {
   const modules = usePaged<Module>(
     (page) =>
       canOffer
-        ? catalogApi.modules.list({ page, page_size: 100, current_year: 'true', planned: 'false' })
+        ? catalogApi.modules.list({ page, page_size: 100, semester_id: periodId || undefined, planned: 'false' })
         : Promise.resolve({ count: 0, next: null, previous: null, results: [] }),
-    [canOffer],
+    [canOffer, periodId],
   );
   const moduleOptions = modules.items.map((item) => ({
     value: item.id,
@@ -109,9 +109,9 @@ export function PlansScreen({ scope, readOnly = false }: PlansScreenProps) {
         subtitle={
           scope === 'mine'
             ? 'Current and historical teaching assignments. Configure the assessment count before entering marks.'
-            : 'Assign each current-year module offering to its responsible teacher; use the year filter for history.'
+            : 'Assign each module offering in a teaching period to its responsible teacher.'
         }
-        actions={<><Button label={status !== 'ALL' || pickedAcademic ? 'Filter (active)' : 'Filter'} variant="secondary" onPress={() => setFiltersOpen(true)} />{canOffer ? <Button label="Assign module" onPress={() => form.open()} /> : null}</>}
+        actions={<><Button label={status !== 'ALL' || pickedPeriod ? 'Filter (active)' : 'Filter'} variant="secondary" onPress={() => setFiltersOpen(true)} />{canOffer ? <Button label="Assign module" onPress={() => form.open()} /> : null}</>}
       />
 
       <Sheet title="Filter module assignments" visible={filtersOpen} onDismiss={() => setFiltersOpen(false)}>
@@ -130,12 +130,12 @@ export function PlansScreen({ scope, readOnly = false }: PlansScreenProps) {
             ]}
           />
           <Picker
-            label="Academic year"
-            loading={academics.loading}
-            options={academicOptions}
-            value={academicId}
+            label="Teaching period"
+            loading={periods.loading}
+            options={periodOptions}
+            value={periodId}
             onChange={(value) => {
-              setPickedAcademic(value);
+              setPickedPeriod(value);
               list.setPage(1);
             }}
           />
@@ -147,7 +147,7 @@ export function PlansScreen({ scope, readOnly = false }: PlansScreenProps) {
         items={list.items}
         loading={list.loading}
         error={list.error}
-        emptyMessage={scope === 'mine' ? 'No module has been offered to you in this academic year yet.' : 'No lecture plans match these filters.'}
+        emptyMessage={scope === 'mine' ? 'No module has been offered to you in this teaching period yet.' : 'No lecture plans match these filters.'}
         onRetry={list.reload}
         keyExtractor={(plan) => plan.id}
         onRowPress={(plan) => router.push(`${basePath}/${plan.id}` as Href)}
@@ -182,7 +182,7 @@ export function PlansScreen({ scope, readOnly = false }: PlansScreenProps) {
       <FormSheet
         title={form.draft?.id === null || form.draft === undefined ? 'Assign module' : 'Module assignment'}
         form={form}
-        hint="Only the current academic year is offered, and only modules nobody has been given yet. The teacher starts in Draft and writes the raw assessment marks themselves."
+        hint="Only modules in an active teaching period that have no teacher yet are available. The teacher starts in Draft and writes the raw assessment marks."
       >
         {(draft, update) => (
           <>

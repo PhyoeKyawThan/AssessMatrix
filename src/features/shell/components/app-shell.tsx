@@ -4,8 +4,8 @@ import { useState, type ReactNode } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { SIGN_IN_HREF, useAuth } from '@/features/auth';
-import { ROLE_LABELS, type Role } from '@/features/auth/types';
+import { HOME_BY_ROLE, SIGN_IN_HREF, useAuth } from '@/features/auth';
+import { type Role } from '@/features/auth/types';
 import { isSectionActive, NAV_BY_ROLE, targetOf, VISIBLE_TABS, type NavItem } from '@/features/shell/nav';
 import { scale, useResponsive, useTheme } from '@/shared/theme';
 import { useSubmit } from '@/shared/api/use-resource';
@@ -15,6 +15,7 @@ import { Icon, shellIconColor } from '@/shared/ui/icon';
 import { Sheet } from '@/shared/ui/sheet';
 import { ThemeToggle } from '@/shared/ui/theme-toggle';
 import { Body, Meta } from '@/shared/ui/text';
+import { useI18n } from '@/shared/i18n';
 
 const CREST = require('@/assets/brand/crest-mark.png');
 
@@ -91,6 +92,7 @@ function Sidebar({ items }: { items: NavItem[] }) {
   const { colors } = useTheme();
   const insets = useSafeAreaInsets();
   const { select, go } = useNav(items);
+  const { t } = useI18n();
 
   return (
     <View
@@ -105,7 +107,7 @@ function Sidebar({ items }: { items: NavItem[] }) {
       ]}
     >
       <Brand compact={false} />
-      <Text style={[styles.navCaption, { color: colors.sidebarText }]}>WORKSPACE</Text>
+      <Text style={[styles.navCaption, { color: colors.sidebarText }]}>{t('common.workspace').toUpperCase()}</Text>
       <ScrollView bounces={false} contentContainerStyle={styles.navList}>
         {items.map((item) => (
           <NavButton
@@ -175,6 +177,7 @@ function TabBar({ items }: { items: NavItem[] }) {
   const { select, go } = useNav(items);
   const [more, setMore] = useState(false);
   const [account, setAccount] = useState(false);
+  const { t } = useI18n();
   // A phone fits five tabs; when the role has more sections than that, the account gets one of
   // the four slots so overflow and sign-out stay reachable.
   const overflow = items.length > VISIBLE_TABS;
@@ -210,7 +213,7 @@ function TabBar({ items }: { items: NavItem[] }) {
                 fontWeight: selected ? '700' : '500',
               }}
             >
-              {item.tabLabel}
+              {t(`nav.${item.tabLabel}`)}
             </Text>
             {selected ? <View style={[styles.tabMarker, { backgroundColor: colors.accent }]} /> : null}
           </Pressable>
@@ -220,7 +223,7 @@ function TabBar({ items }: { items: NavItem[] }) {
         <Pressable accessibilityRole="tab" onPress={() => setMore(true)} style={({ pressed }) => [styles.tab, pressed && styles.pressed]}>
           <Icon name="grid" size={22} color={colors.sidebarText} />
           <Text style={{ color: colors.sidebarText, fontSize: scale(11, layout.typeScale), fontWeight: '500' }}>
-            More
+            {t('common.more')}
           </Text>
         </Pressable>
       ) : null}
@@ -232,10 +235,10 @@ function TabBar({ items }: { items: NavItem[] }) {
       >
         <Icon name="person" size={22} color={colors.sidebarText} />
         <Text style={{ color: colors.sidebarText, fontSize: scale(11, layout.typeScale), fontWeight: '500' }}>
-          Account
+          {t('common.account')}
         </Text>
       </Pressable>
-      <Sheet title="More sections" visible={more} onDismiss={() => setMore(false)}>
+      <Sheet title={t('common.moreSections')} visible={more} onDismiss={() => setMore(false)}>
         {rest.map((item) => (
           <NavButton
             key={targetOf(item)}
@@ -255,8 +258,9 @@ function TabBar({ items }: { items: NavItem[] }) {
 }
 
 function AccountSheet({ visible, onDismiss }: { visible: boolean; onDismiss: () => void }) {
+  const { t } = useI18n();
   return (
-    <Sheet title="Account" visible={visible} onDismiss={onDismiss}>
+    <Sheet title={t('common.account')} visible={visible} onDismiss={onDismiss}>
       <AccountDetails onNavigate={onDismiss} />
     </Sheet>
   );
@@ -277,11 +281,13 @@ function NavButton({
   const layout = useResponsive();
   const onSidebar = variant !== 'row';
   const tint = shellIconColor(colors, selected, onSidebar);
+  const { t } = useI18n();
+  const label = t(`nav.${item.label}`);
 
   return (
     <Pressable
       accessibilityRole="link"
-      accessibilityLabel={item.label}
+      accessibilityLabel={label}
       accessibilityState={{ selected }}
       onPress={onPress}
       style={({ pressed }) => [
@@ -308,7 +314,7 @@ function NavButton({
             fontSize: scale(14, layout.typeScale),
           }}
         >
-          {item.label}
+          {label}
         </Text>
       )}
     </Pressable>
@@ -320,6 +326,7 @@ function ShellFooter() {
   const layout = useResponsive();
   const { user } = useAuth();
   const { submit, leave } = useSignOut();
+  const { t } = useI18n();
 
   const initials = (user?.full_name ?? '?')
     .split(' ')
@@ -339,10 +346,10 @@ function ShellFooter() {
         </View>
         <View style={styles.userText}>
           <Text numberOfLines={1} style={{ color: colors.sidebarActive, fontWeight: '700', fontSize: scale(14, layout.typeScale) }}>
-            {user?.full_name ?? 'Signed out'}
+            {user?.full_name ?? t('common.signedOut')}
           </Text>
           <Text numberOfLines={1} style={{ color: colors.sidebarText, fontSize: scale(11, layout.typeScale) }}>
-            {user?.role ?? ''}
+            {user ? t(`roles.${user.role}`) : ''}
           </Text>
         </View>
         <ThemeToggle variant="onDark" />
@@ -354,7 +361,7 @@ function ShellFooter() {
       >
         <Icon name="logout" size={18} color={colors.sidebarText} />
         <Text style={{ color: colors.sidebarText, fontSize: scale(13, layout.typeScale), fontWeight: '600' }}>
-          Sign out
+          {t('common.signOut')}
         </Text>
       </Pressable>
     </View>
@@ -367,27 +374,29 @@ function AccountDetails({ onNavigate }: { onNavigate?: () => void } = {}) {
   const { user } = useAuth();
   const router = useRouter();
   const { submit, leave } = useSignOut();
+  const { t } = useI18n();
 
   return (
     <View style={{ gap: layout.gap - 6 }}>
-      <Meta>{user?.full_name ?? 'Signed out'}</Meta>
+      <Meta>{user?.full_name ?? t('common.signedOut')}</Meta>
       {submit.error !== null ? <ErrorBanner title="Sign out failed" messages={submit.error} /> : null}
       {user !== null ? (
         <>
-          <Body tone="secondary">{ROLE_LABELS[user.role]}</Body>
+          <Body tone="secondary">{t(`roles.${user.role}`)}</Body>
           <Body tone="muted">{user.email}</Body>
         </>
       ) : null}
       {user ? (
         <Button
-          label="Open settings"
+          label={t('nav.Settings')}
           onPress={() => {
             onNavigate?.();
-            router.push(`/${user.role.toLowerCase()}/settings` as Href);
+            const home = HOME_BY_ROLE[user.role] as string;
+            router.push(`${home}/settings` as Href);
           }}
         />
       ) : null}
-      <Button label="Sign out" variant="secondary" loading={submit.pending} onPress={leave} />
+      <Button label={t('common.signOut')} variant="secondary" loading={submit.pending} onPress={leave} />
     </View>
   );
 }

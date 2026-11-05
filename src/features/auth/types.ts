@@ -1,4 +1,4 @@
-export type Role = 'ADMIN' | 'TEACHER' | 'STUDENT';
+export type Role = 'ADMIN' | 'STUDENT_AFFAIRS' | 'TEACHER' | 'STUDENT';
 
 /** GET /api/me/ representation. The API never returns the password. */
 export interface SessionUser {
@@ -17,6 +17,7 @@ export interface SessionUser {
 
 export const ROLE_LABELS: Record<Role, string> = {
   ADMIN: 'Administrator',
+  STUDENT_AFFAIRS: 'Student Affairs',
   TEACHER: 'Teacher',
   STUDENT: 'Student',
 };
