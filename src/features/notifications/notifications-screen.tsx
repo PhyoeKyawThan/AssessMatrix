@@ -133,7 +133,7 @@ export function NotificationsScreen() {
         />
       )}
 
-      <Sheet title="New notification" visible={composeOpen} onDismiss={() => setComposeOpen(false)}>
+      <Sheet title="New notification" visible={composeOpen} onDismiss={() => setComposeOpen(false)} presentation="form">
         {submit.error ? <ErrorBanner title="Could not send notification" messages={submit.error} /> : null}
         <Field label="Title" value={title} placeholder="Important announcement" onChangeText={setTitle} />
         <Field label="Message" value={body} multiline numberOfLines={4} placeholder="Write a clear message for recipients." onChangeText={setBody} />

@@ -121,10 +121,8 @@ export function PushNotifications({ children }: { children: ReactNode }) {
   }, [user?.role]);
 
   useEffect(() => {
-    if (!IS_PUSH_CAPABLE) {
-      report('this platform has no push — expo-notifications tokens are native-only');
-      return;
-    }
+    // Web push is intentionally unsupported, so this is an expected no-op rather than a warning.
+    if (!IS_PUSH_CAPABLE) return;
     if (status !== 'signed-in') return;
     getPushPreference()
       .then((enabled) => enabled ? registerForPush() : false)

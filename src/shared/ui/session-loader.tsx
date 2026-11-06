@@ -1,7 +1,8 @@
-import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { scale, useResponsive, useTheme } from '@/shared/theme';
+import { AnimatedLoader } from '@/shared/ui/animated-loader';
 
 export function SessionLoader({ label = 'Loading…' }: { label?: string }) {
   const { colors } = useTheme();
@@ -14,7 +15,7 @@ export function SessionLoader({ label = 'Loading…' }: { label?: string }) {
         accessibilityLabel={label}
         style={[styles.inner, { gap: layout.gap - 4 }]}
       >
-        <ActivityIndicator color={colors.spinner} size="large" />
+        <AnimatedLoader size={46} color={colors.spinner} />
         <Text style={{ color: colors.textMuted, fontSize: scale(14, layout.typeScale) }}>{label}</Text>
       </View>
     </SafeAreaView>

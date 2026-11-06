@@ -5,6 +5,7 @@ import { scale, useResponsive, useTheme } from '@/shared/theme';
 import { Button } from '@/shared/ui/button';
 import { ErrorBanner } from '@/shared/ui/error-banner';
 import { EmptyState, LoadingBlock } from '@/shared/ui/feedback';
+import { DataSkeleton } from '@/shared/ui/skeleton';
 
 export interface DataColumn<T> {
   key: string;
@@ -42,10 +43,11 @@ export function ResponsiveDataView<T>({
   const layout = useResponsive();
   const { colors } = useTheme();
 
-  if (loading && items.length === 0) return <LoadingBlock />;
+  if (loading && items.length === 0) return <DataSkeleton />;
 
   return (
     <View style={{ gap: layout.gap - 4 }}>
+      {loading ? <LoadingBlock label="Refreshing…" /> : null}
       {error ? (
         <View style={{ gap: 10 }}>
           <ErrorBanner title="Could not load this list" messages={error} />

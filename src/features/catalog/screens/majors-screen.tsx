@@ -59,7 +59,7 @@ export function MajorsScreen() {
           />
         )}
       />
-      <Sheet title={draft?.id === null ? 'New major' : 'Edit major'} visible={draft !== null} onDismiss={() => setDraft(null)}>
+      <Sheet title={draft?.id === null ? 'New major' : 'Edit major'} visible={draft !== null} onDismiss={() => setDraft(null)} presentation="form">
         {submit.error ? <ErrorBanner title="Could not save major" messages={submit.error} /> : null}
         {draft ? (
           <View style={{ gap: 16 }}>

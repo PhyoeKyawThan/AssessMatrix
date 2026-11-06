@@ -1,4 +1,5 @@
 import { AuthProvider } from '@/features/auth';
+import { SplashController } from '@/features/auth/components/splash-controller';
 import { PushNotifications } from '@/features/notifications/push-notifications';
 import { LayoutOverrideProvider, ThemeProvider } from '@/shared/theme';
 import { AppStack } from '@/shared/ui/app-stack';
@@ -10,6 +11,7 @@ export default function RootLayout() {
       <ThemeProvider>
         <LayoutOverrideProvider>
           <AuthProvider>
+            <SplashController />
             <PushNotifications>
               <AppStack />
               {/* {__DEV__ ? <LayoutPreviewBar /> : null} */}

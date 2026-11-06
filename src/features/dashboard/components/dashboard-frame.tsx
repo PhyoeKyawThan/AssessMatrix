@@ -51,6 +51,7 @@ export function DashboardFrame({ title, subtitle, resource, children }: Dashboar
 
       {error !== null ? <ErrorBanner title="The dashboard could not load" messages={error} /> : null}
       {loading && data === null ? <LoadingBlock label="Loading dashboard…" /> : null}
+      {loading && data !== null ? <LoadingBlock label="Refreshing dashboard…" /> : null}
 
       {data !== null ? (
         <>

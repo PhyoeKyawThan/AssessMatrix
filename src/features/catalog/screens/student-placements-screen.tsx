@@ -120,7 +120,7 @@ export function StudentPlacementsScreen() {
         )}
       />
 
-      <Sheet title="Place students in bulk" visible={adding} onDismiss={() => setAdding(false)}>
+      <Sheet title="Place students in bulk" visible={adding} onDismiss={() => setAdding(false)} presentation="form">
         {submit.error ? <ErrorBanner title="Could not create placements" messages={submit.error} /> : null}
         <Picker label="Major" loading={majors.loading} options={majorOptions} value={selectedMajor} onChange={setMajorId} />
         <Picker label="Programme semester" options={Array.from({ length: 10 }, (_, index) => ({ value: String(index + 1), label: `Semester ${index + 1}` }))} value={programmeSemester} onChange={(value) => { setProgrammeSemester(value); setSemesterId(''); }} />
@@ -163,7 +163,7 @@ export function StudentPlacementsScreen() {
         />
       </Sheet>
 
-      <Sheet title="Batch promote students" visible={promoting} onDismiss={() => setPromoting(false)}>
+      <Sheet title="Batch promote students" visible={promoting} onDismiss={() => setPromoting(false)} presentation="form">
         {submit.error ? <ErrorBanner title="Could not promote cohort" messages={submit.error} /> : null}
         <Picker label="Target programme semester" options={Array.from({ length: 10 }, (_, index) => ({ value: String(index + 1), label: `Semester ${index + 1}` }))} value={programmeSemester} onChange={(value) => { setProgrammeSemester(value); setSemesterId(''); }} />
         <Picker label="Target teaching period" loading={periods.loading} options={semesterOptions} value={selectedSemester} onChange={setSemesterId} />

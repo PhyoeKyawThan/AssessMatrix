@@ -1,8 +1,9 @@
 import type { ReactNode } from 'react';
-import { ActivityIndicator, StyleSheet, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 
 import { useResponsive, useTheme } from '@/shared/theme';
 import { Body } from '@/shared/ui/text';
+import { AnimatedLoader } from '@/shared/ui/animated-loader';
 
 export function LoadingBlock({ label = 'Loading…' }: { label?: string }) {
   const { colors } = useTheme();
@@ -10,7 +11,7 @@ export function LoadingBlock({ label = 'Loading…' }: { label?: string }) {
 
   return (
     <View style={[styles.block, { gap: layout.gap - 6 }]} accessibilityRole="status" accessibilityLiveRegion="polite">
-      <ActivityIndicator color={colors.spinner} />
+      <AnimatedLoader size={30} color={colors.spinner} />
       <Body tone="muted">{label}</Body>
     </View>
   );

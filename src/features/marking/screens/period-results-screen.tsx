@@ -110,6 +110,7 @@ export function PeriodResultsScreen() {
         title={selected === null ? t('results.rawMarksTitle') : `${selected.module_code} — ${selected.module_name}`}
         visible={selected !== null}
         onDismiss={() => setSelected(null)}
+        presentation="form"
       >
         {selected === null ? null : (
           <View style={{ gap: 16 }}>

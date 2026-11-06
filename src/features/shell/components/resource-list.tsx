@@ -5,6 +5,7 @@ import { useResponsive } from '@/shared/theme';
 import { Button } from '@/shared/ui/button';
 import { ErrorBanner } from '@/shared/ui/error-banner';
 import { EmptyState, LoadingBlock } from '@/shared/ui/feedback';
+import { DataSkeleton } from '@/shared/ui/skeleton';
 
 interface ResourceListProps<T> {
   items: T[];
@@ -31,10 +32,11 @@ export function ResourceList<T>({
   const layout = useResponsive();
   const columns = grid && layout.detailColumns === 2 ? 2 : 1;
 
-  if (loading && items.length === 0) return <LoadingBlock />;
+  if (loading && items.length === 0) return <DataSkeleton />;
 
   return (
     <View style={{ gap: layout.gap - 4 }}>
+      {loading ? <LoadingBlock label="Refreshing…" /> : null}
       {error !== null ? (
         <View style={{ gap: layout.gap - 6 }}>
           <ErrorBanner title="Could not load this list" messages={error} />

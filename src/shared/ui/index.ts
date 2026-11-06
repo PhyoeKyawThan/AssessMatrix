@@ -1,4 +1,5 @@
 export { Badge, type BadgeTone } from '@/shared/ui/badge';
+export { AnimatedLoader } from '@/shared/ui/animated-loader';
 export { Button } from '@/shared/ui/button';
 export { Card } from '@/shared/ui/card';
 export { CheckRow } from '@/shared/ui/check-row';
@@ -15,6 +16,7 @@ export { ResponsiveDataView, type DataColumn } from '@/shared/ui/responsive-data
 export { Screen } from '@/shared/ui/screen';
 export { ScreenHeader } from '@/shared/ui/screen-header';
 export { SessionLoader } from '@/shared/ui/session-loader';
+export { DataSkeleton, PageSkeleton } from '@/shared/ui/skeleton';
 export { Sheet } from '@/shared/ui/sheet';
 export { ThemeToggle } from '@/shared/ui/theme-toggle';
 export { Body, Meta, SectionTitle, Title, Value } from '@/shared/ui/text';

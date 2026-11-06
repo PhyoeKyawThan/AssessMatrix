@@ -1,7 +1,8 @@
-import { ActivityIndicator, Pressable, StyleSheet, Text, type PressableProps } from 'react-native';
+import { Pressable, StyleSheet, Text, type PressableProps } from 'react-native';
 
 import { radius, scale, useResponsive, useTheme } from '@/shared/theme';
 import { Icon, type IconName } from '@/shared/ui/icon';
+import { AnimatedLoader } from '@/shared/ui/animated-loader';
 
 interface ButtonProps extends Omit<PressableProps, 'children' | 'style'> {
   label: string;
@@ -37,7 +38,7 @@ export function Button({ label, loading = false, variant = 'primary', icon, disa
       {...rest}
     >
       {loading ? (
-        <ActivityIndicator color={secondary ? colors.text : colors.onPrimary} />
+        <AnimatedLoader size={19} color={secondary ? colors.text : colors.onPrimary} />
       ) : (
         <>
           {icon ? <Icon name={icon} size={17} color={secondary ? colors.textSecondary : colors.onPrimary} /> : null}

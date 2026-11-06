@@ -50,7 +50,7 @@ export function FormSheet<D extends { id: string | null }>({
   };
 
   return (
-    <Sheet title={title} visible={form.draft !== null} onDismiss={close}>
+    <Sheet title={title} visible={form.draft !== null} onDismiss={close} presentation="form">
       {form.localErrors.length > 0 ? <ErrorBanner title="Check these fields" messages={form.localErrors} /> : null}
       {form.error !== null ? <ErrorBanner title="The API rejected this request" messages={form.error} /> : null}
       {form.notice !== null ? <Body tone="success">{form.notice}</Body> : null}

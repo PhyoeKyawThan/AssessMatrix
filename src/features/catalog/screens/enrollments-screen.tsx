@@ -274,7 +274,7 @@ function AddSingleSheet({ moduleOptions, defaultModule, onClose, onSaved }: Pick
   const submit = useSubmit();
 
   return (
-    <Sheet title="Enrol one student" visible onDismiss={onClose}>
+    <Sheet title="Enrol one student" visible onDismiss={onClose} presentation="form">
       {submit.error !== null ? <ErrorBanner title="Could not enrol" messages={submit.error} /> : null}
       {submit.notice !== null ? <Body tone="success">{submit.notice}</Body> : null}
       <View style={{ gap: 16 }}>
@@ -314,7 +314,7 @@ function BulkSheet({ moduleOptions, defaultModule, onClose, onSaved }: PickerShe
     setPicked((current) => (current.includes(id) ? current.filter((value) => value !== id) : [...current, id]));
 
   return (
-    <Sheet title="Bulk enrollment" visible onDismiss={onClose}>
+    <Sheet title="Bulk enrollment" visible onDismiss={onClose} presentation="form">
       {submit.error !== null ? <ErrorBanner title="Nothing was created" messages={submit.error} /> : null}
       {submit.notice !== null ? <Body tone="success">{submit.notice}</Body> : null}
       <View style={{ gap: 16 }}>

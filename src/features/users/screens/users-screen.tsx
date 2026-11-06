@@ -171,7 +171,7 @@ export function UsersScreen() {
         <Button label="Show results" onPress={() => { list.setPage(1); setFiltersOpen(false); }} />
       </Sheet>
 
-      <Sheet title="Import students and teachers" visible={importOpen} onDismiss={() => setImportOpen(false)}>
+      <Sheet title="Import students and teachers" visible={importOpen} onDismiss={() => setImportOpen(false)} presentation="form">
         {importSubmit.error ? <ErrorBanner title="Could not read the workbook" messages={importSubmit.error} /> : null}
         {importSubmit.notice ? <Body tone="success">{importSubmit.notice}</Body> : null}
         <Body tone="secondary">The first row must contain these columns in order:</Body>
@@ -246,6 +246,7 @@ export function UsersScreen() {
         title={draft?.id === null || draft?.id === undefined ? 'New user' : 'Edit user'}
         visible={draft !== null}
         onDismiss={() => setDraft(null)}
+        presentation="form"
       >
         {submit.error !== null ? <ErrorBanner title="The API rejected this request" messages={submit.error} /> : null}
         {submit.notice !== null ? <Body tone="success">{submit.notice}</Body> : null}

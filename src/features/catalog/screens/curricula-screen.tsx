@@ -153,20 +153,20 @@ export function CurriculaScreen() {
         renderCard={(item) => <RecordRow title={item.name} subtitle={`${item.major_code} · ${item.module_slots.length} module placements`} badge={<Badge label={item.status} tone={item.status === 'ACTIVE' ? 'success' : 'neutral'} />} onPress={() => setSelected(item)} />}
       />
 
-      <Sheet title="New curriculum version" visible={creating} onDismiss={() => setCreating(false)}>
+      <Sheet title="New curriculum version" visible={creating} onDismiss={() => setCreating(false)} presentation="form">
         <Picker label="Major" loading={majors.loading} options={majorOptions} value={majorId || majorOptions[0]?.value || ''} onChange={setMajorId} />
         <Field label="Version name" placeholder="CS Curriculum 2027" value={name} onChangeText={setName} />
         <Button label="Create draft curriculum" loading={submit.pending} disabled={!name.trim() || !(majorId || majorOptions[0]?.value)} onPress={createCurriculum} />
       </Sheet>
 
-      <Sheet title="New catalogue module" visible={catalogOpen} onDismiss={() => setCatalogOpen(false)}>
+      <Sheet title="New catalogue module" visible={catalogOpen} onDismiss={() => setCatalogOpen(false)} presentation="form">
         <Body tone="muted">Create the permanent identity once. It can then be placed in fixed programme semesters across curriculum versions.</Body>
         <Field label="Module code" autoCapitalize="characters" placeholder="CS101" value={moduleCode} onChangeText={setModuleCode} />
         <Field label="Module name" placeholder="Programming Fundamentals" value={moduleName} onChangeText={setModuleName} />
         <Button label="Create catalogue module" loading={submit.pending} disabled={!moduleCode.trim() || !moduleName.trim()} onPress={createDefinition} />
       </Sheet>
 
-      <Sheet title={selected?.name ?? 'Curriculum'} visible={selected !== null} onDismiss={() => setSelected(null)}>
+      <Sheet title={selected?.name ?? 'Curriculum'} visible={selected !== null} onDismiss={() => setSelected(null)} presentation="form">
         {selected ? (
           <View style={{ gap: 16 }}>
             <Card title="Module placements">
